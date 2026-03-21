@@ -44,5 +44,5 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
     // Firebase Database (FIXED name too)
-    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-firestore")
 }
