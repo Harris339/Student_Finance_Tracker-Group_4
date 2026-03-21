@@ -18,12 +18,18 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        Button transactionBtn;
+        Button transactionBtn, chartBtn;
 
         transactionBtn = findViewById(R.id.transactionBtn);
+        chartBtn = findViewById(R.id.chartBtn);
 
         transactionBtn.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, TransactionActivity.class);
+            startActivity(intent);
+        });
+
+        chartBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ChartActivity.class);
             startActivity(intent);
         });
     }

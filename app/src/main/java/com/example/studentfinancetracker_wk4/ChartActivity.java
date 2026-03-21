@@ -10,18 +10,18 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import androidx.appcompat.app.AppCompatActivity;
 
 public class ChartActivity extends AppCompatActivity{
 
-        Button addIncomeBtn, addExpenseBtn;
+        Button previousBtn, nextBtn;
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            setContentView(R.layout.activity_transaction);
+            setContentView(R.layout.activity_chart);
 
-
+            previousBtn = findViewById(R.id.previousBtn);
+            nextBtn = findViewById(R.id.nextBtn);
         }
 
     }
