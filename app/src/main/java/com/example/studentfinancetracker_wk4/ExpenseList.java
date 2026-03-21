@@ -21,4 +21,13 @@ public class ExpenseList {
         }
         return total;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (FixedExpense expense : expenses) {
+            sb.append(expense.toString()).append("\n");
+        }
+        return sb.toString();
+    }
 }

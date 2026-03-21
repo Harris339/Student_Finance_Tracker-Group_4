@@ -51,11 +51,14 @@ public class User {
         return email;
     }
 
-    public void setUsername(String email) {
+    public void setEmail(String email) {
         this.email = email;
     }
 
-    public void addExpense(FixedExpense expense){ expenseList.addExpense(expense); }
+    public void addExpense(FixedExpense expense){
+        expenseList.addExpense(expense);
+        System.out.println(expenseList.toString());
+    }
 
     public ExpenseList getExpenseList(){ return expenseList; }
 }

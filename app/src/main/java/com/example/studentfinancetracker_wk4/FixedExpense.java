@@ -1,15 +1,16 @@
 package com.example.studentfinancetracker_wk4;
 
 import java.time.LocalDate;
+import java.util.Date;
 
 public class FixedExpense {
     private String category;
     private String title;
     private double amount;
-    private LocalDate date;
+    private Date date;
     private String notes;
 
-    public FixedExpense(String category, String title, double amount, LocalDate date, String notes) {
+    public FixedExpense(String category, String title, double amount,Date date, String notes) {
         this.category = category;
         this.title = title;
         this.amount = amount;
@@ -29,7 +30,7 @@ public class FixedExpense {
         return amount;
     }
 
-    public LocalDate getDate() {
+    public Date getDate() {
         return date;
     }
 
@@ -49,11 +50,20 @@ public class FixedExpense {
         this.title = title;
     }
 
-    public void setDate(LocalDate date) {
+    public void setDate(Date date) {
         this.date = date;
     }
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    @Override
+    public String toString(){
+        return "Category: " + category + "\n" +
+                "Title: " + title + "\n" +
+                "Amount: " + amount + "\n" +
+                "Date: " + date.toString() + "\n" +
+                "Notes: " + notes + "\n\n";
     }
 }
