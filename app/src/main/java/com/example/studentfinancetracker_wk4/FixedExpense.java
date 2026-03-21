@@ -7,15 +7,28 @@ public class FixedExpense {
     private String category;
     private String title;
     private double amount;
-    private Date date;
+    private String frequency;
     private String notes;
 
-    public FixedExpense(String category, String title, double amount,Date date, String notes) {
+    private double totalPaid;
+
+    public FixedExpense(String category, String title, double amount, String frequency, String notes) {
         this.category = category;
         this.title = title;
         this.amount = amount;
-        this.date = date;
+        this.frequency = frequency;
         this.notes = notes;
+        this.totalPaid = 0.0;
+    }
+
+
+    public FixedExpense(String category, String title, double amount, String frequency, String notes, double totalPaid) {
+        this.category = category;
+        this.title = title;
+        this.amount = amount;
+        this.frequency = frequency;
+        this.notes = notes;
+        this.totalPaid = totalPaid;
     }
 
     public String getCategory() {
@@ -30,12 +43,16 @@ public class FixedExpense {
         return amount;
     }
 
-    public Date getDate() {
-        return date;
+    public String getFrequency() {
+        return frequency;
     }
 
     public String getNotes() {
         return notes;
+    }
+
+    public double getTotalPaid(){
+        return totalPaid;
     }
 
     public void setAmount(double amount) {
@@ -50,12 +67,16 @@ public class FixedExpense {
         this.title = title;
     }
 
-    public void setDate(Date date) {
-        this.date = date;
+    public void setFrequency(String frequency) {
+        this.frequency = frequency;
     }
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public void setTotalPaid(double totalPaid){
+        this.totalPaid = totalPaid;
     }
 
     @Override
@@ -63,7 +84,7 @@ public class FixedExpense {
         return "Category: " + category + "\n" +
                 "Title: " + title + "\n" +
                 "Amount: " + amount + "\n" +
-                "Date: " + date.toString() + "\n" +
+                "Frequenct=y: " + frequency + "\n" +
                 "Notes: " + notes + "\n\n";
     }
 }
