@@ -26,4 +26,11 @@
         android:text="Go to Main Page"
         android:layout_marginTop="12dp"/>
 
+    <Button
+        android:id="@+id/expenseBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Go to Expenses Page"
+        android:layout_marginTop="12dp"/>
+
 </LinearLayout>

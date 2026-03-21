@@ -50,10 +50,13 @@ public class LoginActivity extends AppCompatActivity{
                 return;
             }
 
-            if (email.equals("test@test.com") && password.equals("password123")) {
+            if (email.equals("test") && password.equals("test")) {
                 errorText.setText("");
 
                 Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
+
+                User user = new User("Kai", "Howley", email, password);
+                SessionManager.getInstance().setCurrentUser(user);
 
                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                 startActivity(intent);

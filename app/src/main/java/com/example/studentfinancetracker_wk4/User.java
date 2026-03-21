@@ -4,20 +4,21 @@ public class User {
 
     private String fname;
     private String lname;
-    private String username;
+    private String email;
     private String password;
-
-    public User(String fname, String lname, String username, String password){
+    private ExpenseList expenseList;
+    public User(String fname, String lname, String email, String password){
         this.fname = fname;
         this.lname = lname;
-        this.username = username;
+        this.email = email;
         this.password = password;
+        this.expenseList = new ExpenseList();
     }
 
     public User(){
         fname = "";
         lname = "";
-        username = "";
+        email = "";
         password = "";
 
     }
@@ -46,11 +47,15 @@ public class User {
         this.password = password;
     }
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUsername(String email) {
+        this.email = email;
     }
+
+    public void addExpense(FixedExpense expense){ expenseList.addExpense(expense); }
+
+    public ExpenseList getExpenseList(){ return expenseList; }
 }
