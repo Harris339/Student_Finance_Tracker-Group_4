@@ -30,6 +30,10 @@ public class ExpensesActivity extends AppCompatActivity {
         currentUser = SessionManager.getInstance().getCurrentUser();
         if (currentUser != null) expenseList = currentUser.getExpenseList();
 
+        for (FixedExpense expense : expenseList.getAllExpenses()){
+            addExpenseBox(expense);
+        }
+
         addButton.setOnClickListener(v -> {
             View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_expense, null);
 
