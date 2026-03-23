@@ -1,5 +1,8 @@
 package com.example.studentfinancetracker_wk4;
 
+import java.util.Calendar;
+import java.util.Date;
+
 public class User {
 
     private String fname;
@@ -13,6 +16,15 @@ public class User {
         this.email = email;
         this.password = password;
         this.expenseList = new ExpenseList();
+
+        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "30", "");
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -10);
+        Date tendaysago = cal.getTime();
+        expense.setLastPayment(tendaysago);
+
+        expenseList.addExpense(expense);
     }
 
     public User(){

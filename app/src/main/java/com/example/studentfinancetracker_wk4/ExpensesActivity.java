@@ -5,6 +5,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -12,6 +13,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+
+import org.w3c.dom.Text;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class ExpensesActivity extends AppCompatActivity {
     Button addButton;
@@ -30,7 +37,7 @@ public class ExpensesActivity extends AppCompatActivity {
         currentUser = SessionManager.getInstance().getCurrentUser();
         if (currentUser != null) expenseList = currentUser.getExpenseList();
 
-        for (FixedExpense expense : expenseList.getAllExpenses()){
+        for (FixedExpense expense : expenseList.getAllExpenses()) {
             addExpenseBox(expense);
         }
 
@@ -106,14 +113,52 @@ public class ExpensesActivity extends AppCompatActivity {
         TextView tvAmount = box.findViewById(R.id.tvAmount);
         Button btnPay = box.findViewById(R.id.btnPay);
         TextView tvTotalPaid = box.findViewById(R.id.tvTotalPaid);
+        TextView tvLastPayment = box.findViewById(R.id.tvLastPayment);
+        EditText etAmount = box.findViewById(R.id.etAmount);
+        ImageButton btnMenu = box.findViewById(R.id.btnMenu);
 
+        // Set text
         tvTitle.setText(expense.getTitle());
         tvAmount.setText(String.format("€%.2f", expense.getAmount()));
         tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
 
+        Date lastPayment = expense.getLastPayment();
+        if (lastPayment == null) {
+            tvLastPayment.setText("N/A");
+        } else {
+            long diffMillis = new Date().getTime() - lastPayment.getTime();
+            long daysElapsed = TimeUnit.MILLISECONDS.toDays(diffMillis);
+            tvLastPayment.setText(String.valueOf(daysElapsed));
+        }
+
+        // Pay button
         btnPay.setOnClickListener(v -> {
-            expense.setTotalPaid(expense.getTotalPaid() + expense.getAmount());
+            String input = etAmount.getText().toString().trim();
+            double amountToPay = input.isEmpty() ? expense.getAmount() : Double.parseDouble(input);
+            expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
             tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
+            tvLastPayment.setText("0");
+            expense.setLastPayment(new Date());
+            etAmount.setText("");
+        });
+
+        // Menu button
+        btnMenu.setOnClickListener(v -> {
+            // Inflate dialog layout
+            View editView = getLayoutInflater().inflate(R.layout.edit_expense, null);
+            ImageButton btnExit = editView.findViewById(R.id.btnExit);
+
+            // Create AlertDialog safely
+            AlertDialog dialog = new AlertDialog.Builder(ExpensesActivity.this)
+                    .setView(editView)
+                    .create();
+
+            dialog.show();
+
+            // Set exit button listener if exists
+            if (btnExit != null) {
+                btnExit.setOnClickListener(eve -> dialog.dismiss());
+            }
         });
 
         container.addView(box);

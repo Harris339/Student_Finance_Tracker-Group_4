@@ -11,6 +11,7 @@ public class FixedExpense {
     private String notes;
 
     private double totalPaid;
+    private Date lastPayment;
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes) {
         this.category = category;
@@ -19,6 +20,7 @@ public class FixedExpense {
         this.frequency = frequency;
         this.notes = notes;
         this.totalPaid = 0.0;
+        this.lastPayment = null;
     }
 
 
@@ -55,6 +57,8 @@ public class FixedExpense {
         return totalPaid;
     }
 
+    public Date getLastPayment() { return lastPayment; }
+
     public void setAmount(double amount) {
         this.amount = amount;
     }
@@ -78,6 +82,8 @@ public class FixedExpense {
     public void setTotalPaid(double totalPaid){
         this.totalPaid = totalPaid;
     }
+
+    public void setLastPayment(Date lastPayment) { this.lastPayment = lastPayment; }
 
     @Override
     public String toString(){

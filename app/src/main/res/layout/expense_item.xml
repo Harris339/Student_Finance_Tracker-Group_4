@@ -2,11 +2,30 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="12dp"
     android:background="@drawable/rounded_box"
     android:layout_marginBottom="12dp">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_more_horiz"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Menu"/>
+    </LinearLayout>
     <!-- Top row: Title + Amount per period -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -32,28 +51,69 @@
             android:textSize="16sp"/>
     </LinearLayout>
 
-    <!-- Bottom row: Total Paid + Pay button -->
+    <!-- Bottom row: Custom Amount + Pay button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end"
+        android:gravity="center_vertical"
         android:layout_marginTop="8dp">
 
-        <TextView
-            android:id="@+id/tvTotalPaid"
+        <EditText
+            android:id="@+id/etAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Total paid: $45"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:layout_marginEnd="16dp"/>
+            android:hint="Enter custom amount"
+            android:textColorHint="@color/white"
+            android:textColor="@color/white"
+            android:textSize="16dp"
+            android:inputType="numberDecimal"/>
 
-        <Button
-            android:id="@+id/btnPay"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Pay"/>
+            android:layout_weight="1"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/btnPay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pay"/>
+        </LinearLayout>
     </LinearLayout>
 
+    <!-- Last Payment Date & Total Spent-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Days since last payment: "
+            android:textColor="@color/white"/>
+
+        <TextView
+            android:id="@+id/tvLastPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--"
+            android:textColor="@color/white"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvTotalPaid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total paid: $45"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginEnd="16dp"/>
+
+    </LinearLayout>
 </LinearLayout>
