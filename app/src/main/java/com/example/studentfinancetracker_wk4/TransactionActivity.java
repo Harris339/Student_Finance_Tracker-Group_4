@@ -10,6 +10,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TransactionActivity extends AppCompatActivity {
 
@@ -31,6 +34,27 @@ public class TransactionActivity extends AppCompatActivity {
 
         addIncomeBtn.setOnClickListener(v -> addIncome());
         addExpenseBtn.setOnClickListener(v -> addExpense());
+
+        Button testBtn = findViewById(R.id.testBtn);
+
+        testBtn.setOnClickListener(v -> {
+
+            FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("amount", 50);
+            data.put("category", "Food");
+
+            db.collection("transactions")
+                    .add(data)
+                    .addOnSuccessListener(doc ->
+                            Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show()
+                    )
+                    .addOnFailureListener(e ->
+                            Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
+                    );
+
+        });
     }
 
     private void addIncome() {
