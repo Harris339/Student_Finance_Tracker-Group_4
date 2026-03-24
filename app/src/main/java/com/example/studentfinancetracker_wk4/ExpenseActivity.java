@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class ExpenseActivity extends AppCompatActivity {
+public class ExpenseActivity extends TransactionActivity {
 
     EditText amountInput;
     Button addExpenseBtn, Back;
@@ -31,10 +31,7 @@ public class ExpenseActivity extends AppCompatActivity {
         addExpenseBtn = findViewById(R.id.expenseConfirm);
         Back = findViewById(R.id.expenseBack);
 
-        Back.setOnClickListener(v -> {
-            Intent intent = new Intent(ExpenseActivity.this, TransactionActivity.class);
-            startActivity(intent);
-        });
+        Back.setOnClickListener(v -> finish());
 
     }
 

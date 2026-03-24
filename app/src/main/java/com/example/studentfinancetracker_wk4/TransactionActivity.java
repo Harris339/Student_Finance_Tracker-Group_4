@@ -43,12 +43,13 @@ public class TransactionActivity extends AppCompatActivity {
     }
 
 
-    private void transaction(Double amount) {
+    protected void transaction(String category, double amount, String type) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         Map<String, Object> data = new HashMap<>();
         data.put("amount", amount);
-        data.put("category", "Food");
+        data.put("type", type);
+        data.put("category", category);
 
         db.collection("transactions")
                 .add(data)

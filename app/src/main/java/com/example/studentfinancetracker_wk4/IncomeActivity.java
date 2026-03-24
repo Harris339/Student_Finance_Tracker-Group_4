@@ -16,10 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class IncomeActivity extends AppCompatActivity {
+public class IncomeActivity extends TransactionActivity {
 
-    EditText amountInput;
-    Button addIncomeBtn, Back;
+    EditText amountInput, categoryInput;
+    Button confirmBtn, Back;
 
     double totalIncome = 0;
 
@@ -28,19 +28,26 @@ public class IncomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_income);
 
-        addIncomeBtn = findViewById(R.id.incomeConfirm);
+        amountInput = findViewById(R.id.IamountInput);
+        categoryInput = findViewById(R.id.IcategoryInput);
+        confirmBtn = findViewById(R.id.incomeConfirm);
         Back = findViewById(R.id.incomeBack);
 
-        Back.setOnClickListener(v -> {
-            Intent intent = new Intent(IncomeActivity.this, TransactionActivity.class);
-            startActivity(intent);
+        confirmBtn.setOnClickListener(v -> {
+            String amountStr = amountInput.getText().toString(); // get text from EditText
+            double amount = Double.parseDouble(amountStr);        // convert text to double
+            String category = categoryInput.getText().toString();
+            addIncome(category, amount);
+            finish();
         });
 
+        Back.setOnClickListener(v -> finish());
         }
 
-    private void addIncome() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
+    private void addIncome(String category, double amount) {
         totalIncome += amount;
+
+        transaction(category, amount, "Income");
 
         Toast.makeText(this, "Income Added", Toast.LENGTH_SHORT).show();
     }
