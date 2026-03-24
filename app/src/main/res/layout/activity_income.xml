@@ -8,6 +8,21 @@
     android:layout_height="match_parent"
     tools:context=".IncomeActivity">
 
+    <TextView
+        android:id="@+id/headerText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Income"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/black"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#5D3FD3"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <LinearLayout
         android:layout_height="wrap_content"
         android:layout_width="0dp"
@@ -21,14 +36,14 @@
 
         <EditText
             android:id="@+id/IamountInput"
-            android:hint="Input Amount"
+            android:hint="Amount"
             android:inputType="numberDecimal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
         <EditText
             android:id="@+id/IcategoryInput"
-            android:hint="Input Category"
+            android:hint="Category"
             android:inputType="text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

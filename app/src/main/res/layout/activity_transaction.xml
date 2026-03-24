@@ -14,9 +14,10 @@
         android:text="Transactions"
         android:textSize="28sp"
         android:textStyle="bold"
+        android:textColor="@color/black"
         android:gravity="center"
         android:padding="16dp"
-        android:background="#800080"
+        android:background="#5D3FD3"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>

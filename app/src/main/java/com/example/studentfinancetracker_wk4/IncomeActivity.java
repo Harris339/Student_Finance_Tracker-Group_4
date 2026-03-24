@@ -34,8 +34,8 @@ public class IncomeActivity extends TransactionActivity {
         Back = findViewById(R.id.incomeBack);
 
         confirmBtn.setOnClickListener(v -> {
-            String amountStr = amountInput.getText().toString(); // get text from EditText
-            double amount = Double.parseDouble(amountStr);        // convert text to double
+            String amountStr = amountInput.getText().toString();
+            double amount = Double.parseDouble(amountStr);
             String category = categoryInput.getText().toString();
             addIncome(category, amount);
             finish();

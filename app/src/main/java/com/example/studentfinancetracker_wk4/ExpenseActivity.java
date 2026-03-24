@@ -18,8 +18,8 @@ import java.util.Map;
 
 public class ExpenseActivity extends TransactionActivity {
 
-    EditText amountInput;
-    Button addExpenseBtn, Back;
+    EditText amountInput, categoryInput;
+    Button confirmBtn, Back;
 
     double totalExpenses = 0;
 
@@ -28,16 +28,29 @@ public class ExpenseActivity extends TransactionActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_expense);
 
-        addExpenseBtn = findViewById(R.id.expenseConfirm);
+        amountInput = findViewById(R.id.EamountInput);
+        categoryInput = findViewById(R.id.EcategoryInput);
+        confirmBtn = findViewById(R.id.expenseConfirm);
         Back = findViewById(R.id.expenseBack);
+
+        confirmBtn.setOnClickListener(v ->{
+
+            String category = categoryInput.getText().toString();
+            String amntStr = amountInput.getText().toString();
+            double amount = Double.parseDouble(amntStr);
+
+            addExpense(category, amount);
+            finish();
+        });
 
         Back.setOnClickListener(v -> finish());
 
     }
 
-    private void addExpense() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
+    private void addExpense(String category, double amount) {
         totalExpenses += amount;
+
+        transaction(category, amount, "Expense");
 
         Toast.makeText(this, "Expense Added", Toast.LENGTH_SHORT).show();
     }
