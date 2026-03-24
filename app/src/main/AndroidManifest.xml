@@ -28,7 +28,6 @@
             android:name=".MainActivity"
             android:exported="false" />
 
-
         <activity
             android:name=".TransactionActivity"
             android:exported="false" />
@@ -36,8 +35,17 @@
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
+
         <activity
             android:name=".ChartActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".IncomeActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".ExpenseActivity"
             android:exported="false"/>
 
     </application>

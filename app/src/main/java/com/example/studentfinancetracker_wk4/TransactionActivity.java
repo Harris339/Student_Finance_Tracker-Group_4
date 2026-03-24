@@ -1,5 +1,6 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,7 +17,6 @@ import java.util.Map;
 
 public class TransactionActivity extends AppCompatActivity {
 
-    EditText amountInput;
     Button addIncomeBtn, addExpenseBtn;
 
     double totalIncome = 0;
@@ -27,34 +27,21 @@ public class TransactionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction);
 
-        amountInput = findViewById(R.id.amountInput);
-
         addIncomeBtn = findViewById(R.id.addIncomeBtn);
         addExpenseBtn = findViewById(R.id.addExpenseBtn);
 
         addIncomeBtn.setOnClickListener(v -> {
-
-            String text = amountInput.getText().toString();
-            double input = Double.parseDouble(text);
-            transaction(input);
+            Intent intent = new Intent(TransactionActivity.this, IncomeActivity.class);
+            startActivity(intent);
         });
-        addExpenseBtn.setOnClickListener(v -> addExpense());
+
+        addExpenseBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(TransactionActivity.this, ExpenseActivity.class);
+            startActivity(intent);
+        });
 
     }
 
-    private void addIncome() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
-        totalIncome += amount;
-
-        Toast.makeText(this, "Income Added", Toast.LENGTH_SHORT).show();
-    }
-
-    private void addExpense() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
-        totalExpenses += amount;
-
-        Toast.makeText(this, "Expense Added", Toast.LENGTH_SHORT).show();
-    }
 
     private void transaction(Double amount) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
