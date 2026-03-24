@@ -17,7 +17,7 @@ import java.util.Map;
 
 public class TransactionActivity extends AppCompatActivity {
 
-    Button addIncomeBtn, addExpenseBtn;
+    Button addIncomeBtn, addExpenseBtn, Backbtn;
 
     double totalIncome = 0;
     double totalExpenses = 0;
@@ -29,6 +29,7 @@ public class TransactionActivity extends AppCompatActivity {
 
         addIncomeBtn = findViewById(R.id.addIncomeBtn);
         addExpenseBtn = findViewById(R.id.addExpenseBtn);
+        Backbtn = findViewById(R.id.BackBtn);
 
         addIncomeBtn.setOnClickListener(v -> {
             Intent intent = new Intent(TransactionActivity.this, IncomeActivity.class);
@@ -39,6 +40,8 @@ public class TransactionActivity extends AppCompatActivity {
             Intent intent = new Intent(TransactionActivity.this, ExpenseActivity.class);
             startActivity(intent);
         });
+
+        Backbtn.setOnClickListener(v -> finish());
 
     }
 

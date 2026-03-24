@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class HomeActivity extends AppCompatActivity {
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -15,6 +16,7 @@ public class HomeActivity extends AppCompatActivity {
 
         Button transactionBtn = findViewById(R.id.transactionBtn);
         Button mainBtn = findViewById(R.id.mainBtn);
+
 
         transactionBtn.setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, TransactionActivity.class);
@@ -25,5 +27,6 @@ public class HomeActivity extends AppCompatActivity {
             Intent intent = new Intent(HomeActivity.this, MainActivity.class);
             startActivity(intent);
         });
+
     }
 }
