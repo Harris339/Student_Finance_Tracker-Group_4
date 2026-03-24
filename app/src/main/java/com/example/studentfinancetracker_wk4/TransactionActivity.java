@@ -32,29 +32,14 @@ public class TransactionActivity extends AppCompatActivity {
         addIncomeBtn = findViewById(R.id.addIncomeBtn);
         addExpenseBtn = findViewById(R.id.addExpenseBtn);
 
-        addIncomeBtn.setOnClickListener(v -> addIncome());
+        addIncomeBtn.setOnClickListener(v -> {
+
+            String text = amountInput.getText().toString();
+            double input = Double.parseDouble(text);
+            transaction(input);
+        });
         addExpenseBtn.setOnClickListener(v -> addExpense());
 
-        Button testBtn = findViewById(R.id.testBtn);
-
-        testBtn.setOnClickListener(v -> {
-
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("amount", 50);
-            data.put("category", "Food");
-
-            db.collection("transactions")
-                    .add(data)
-                    .addOnSuccessListener(doc ->
-                            Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show()
-                    )
-                    .addOnFailureListener(e ->
-                            Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
-                    );
-
-        });
     }
 
     private void addIncome() {
@@ -69,5 +54,22 @@ public class TransactionActivity extends AppCompatActivity {
         totalExpenses += amount;
 
         Toast.makeText(this, "Expense Added", Toast.LENGTH_SHORT).show();
+    }
+
+    private void transaction(Double amount) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("amount", amount);
+        data.put("category", "Food");
+
+        db.collection("transactions")
+                .add(data)
+                .addOnSuccessListener(doc ->
+                        Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
+                );
     }
 }
