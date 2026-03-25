@@ -1,5 +1,6 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,8 +17,7 @@ import java.util.Map;
 
 public class TransactionActivity extends AppCompatActivity {
 
-    EditText amountInput;
-    Button addIncomeBtn, addExpenseBtn;
+    Button addIncomeBtn, addExpenseBtn, Backbtn;
 
     double totalIncome = 0;
     double totalExpenses = 0;
@@ -27,47 +27,40 @@ public class TransactionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction);
 
-        amountInput = findViewById(R.id.amountInput);
-
         addIncomeBtn = findViewById(R.id.addIncomeBtn);
         addExpenseBtn = findViewById(R.id.addExpenseBtn);
+        Backbtn = findViewById(R.id.BackBtn);
 
-        addIncomeBtn.setOnClickListener(v -> addIncome());
-        addExpenseBtn.setOnClickListener(v -> addExpense());
-
-        Button testBtn = findViewById(R.id.testBtn);
-
-        testBtn.setOnClickListener(v -> {
-
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-            Map<String, Object> data = new HashMap<>();
-            data.put("amount", 50);
-            data.put("category", "Food");
-
-            db.collection("transactions")
-                    .add(data)
-                    .addOnSuccessListener(doc ->
-                            Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show()
-                    )
-                    .addOnFailureListener(e ->
-                            Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
-                    );
-
+        addIncomeBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(TransactionActivity.this, IncomeActivity.class);
+            startActivity(intent);
         });
+
+        addExpenseBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(TransactionActivity.this, ExpenseActivity.class);
+            startActivity(intent);
+        });
+
+        Backbtn.setOnClickListener(v -> finish());
+
     }
 
-    private void addIncome() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
-        totalIncome += amount;
 
-        Toast.makeText(this, "Income Added", Toast.LENGTH_SHORT).show();
-    }
+    protected void transaction(String category, double amount, String type) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-    private void addExpense() {
-        double amount = Double.parseDouble(amountInput.getText().toString());
-        totalExpenses += amount;
+        Map<String, Object> data = new HashMap<>();
+        data.put("amount", amount);
+        data.put("type", type);
+        data.put("category", category);
 
-        Toast.makeText(this, "Expense Added", Toast.LENGTH_SHORT).show();
+        db.collection("transactions")
+                .add(data)
+                .addOnSuccessListener(doc ->
+                        Toast.makeText(this, "Saved!", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Error!", Toast.LENGTH_SHORT).show()
+                );
     }
 }

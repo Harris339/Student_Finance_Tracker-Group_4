@@ -41,6 +41,14 @@
             android:exported="false"/>
 
         <activity
+            android:name=".IncomeActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".ExpenseActivity"
+            android:exported="false"/>
+
+        <activity
             android:name=".ExpensesActivity"
             android:exported="false"/>
 
