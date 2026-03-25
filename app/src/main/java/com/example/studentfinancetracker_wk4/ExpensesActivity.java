@@ -1,5 +1,7 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -147,6 +149,17 @@ public class ExpensesActivity extends AppCompatActivity {
             // Inflate dialog layout
             View editView = getLayoutInflater().inflate(R.layout.edit_expense, null);
             ImageButton btnExit = editView.findViewById(R.id.btnExit);
+            Spinner spCategory = editView.findViewById(R.id.spCategory);
+
+            ArrayAdapter<CharSequence> catEditAdapter = ArrayAdapter.createFromResource(
+                    this,R.array.expense_categories,
+                    R.layout.spinner_item_white
+            );
+
+            catEditAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white     );
+
+            spCategory.setAdapter(catEditAdapter);
+            spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
 
             // Create AlertDialog safely
             AlertDialog dialog = new AlertDialog.Builder(ExpensesActivity.this)
