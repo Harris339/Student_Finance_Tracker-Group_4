@@ -52,6 +52,10 @@
             android:name=".ExpensesActivity"
             android:exported="false"/>
 
+        <activity
+            android:name=".createUserActivity"
+            android:exported="false"/>
+
 
     </application>
 
