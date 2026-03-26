@@ -1,47 +1,164 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="24dp"
+    android:background="@drawable/rounded_box">
+
+    <ImageButton
+        android:id="@+id/btnExit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/baseline_cancel_24"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvHeading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Expense"
+        android:textSize="18sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvCategory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Category"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toBottomOf="@id/tvHeading"
+        app:layout_constraintStart_toStartOf="parent"/>
 
     <Spinner
         android:id="@+id/spCategory"
-        android:layout_height="match_parent"
-        android:layout_width="match_parent"
-        android:layout_marginTop="16dp"/>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="3dp"
+
+        app:layout_constraintBottom_toBottomOf="@+id/tvCategory"
+        app:layout_constraintStart_toEndOf="@+id/tvDesc"
+        app:layout_constraintTop_toTopOf="@id/tvCategory"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/tvFreq"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Frequency"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toBottomOf="@id/tvCategory"
+        app:layout_constraintStart_toStartOf="parent"/>
 
     <Spinner
         android:id="@+id/spFrequency"
-        android:layout_height="match_parent"
-        android:layout_width="match_parent"
-        android:layout_marginTop="16dp"/>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="3dp"
+
+        app:layout_constraintBottom_toBottomOf="@+id/tvFreq"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tvDesc"
+        app:layout_constraintTop_toTopOf="@id/tvFreq" />
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Title"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toBottomOf="@id/tvFreq"
+        app:layout_constraintStart_toStartOf="parent"/>
 
     <EditText
         android:id="@+id/etTitle"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Title"
-        android:textColorHint="@color/white"/>
+        android:textColorHint="@color/white"
+        android:layout_marginLeft="3dp"
+        android:textColor="@color/white"
+
+        app:layout_constraintTop_toTopOf="@id/tvTitle"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tvDesc"/>
+
+    <TextView
+        android:id="@+id/tvDesc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Description"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toStartOf="parent"/>
 
     <EditText
         android:id="@+id/etDescription"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Description"
-        android:textColorHint="@color/white"/>
+        android:textColorHint="@color/white"
+        android:layout_marginLeft="3dp"
+        android:textColor="@color/white"
+
+        app:layout_constraintTop_toTopOf="@id/tvDesc"
+        app:layout_constraintBottom_toBottomOf="@id/tvDesc"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tvDesc"/>
+
+    <TextView
+        android:id="@+id/tvAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select Amount"
+        android:layout_marginTop="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+
+        app:layout_constraintTop_toBottomOf="@id/tvDesc"
+        app:layout_constraintStart_toStartOf="parent"/>
 
     <EditText
         android:id="@+id/etAmount"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Amount"
         android:inputType="numberDecimal"
-        android:textColorHint="@color/white"/>
+        android:textColorHint="@color/white"
+        android:layout_marginLeft="3dp"
+        android:textColor="@color/white"
+
+        app:layout_constraintTop_toTopOf="@id/tvAmount"
+        app:layout_constraintBottom_toBottomOf="@id/tvAmount"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tvDesc"/>
 
     <Button
         android:id="@+id/btnSaveExpense"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save"
-        android:layout_marginTop="16dp"/>
-</LinearLayout>
+        android:layout_marginTop="16dp"
+
+        app:layout_constraintTop_toBottomOf="@+id/etAmount"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

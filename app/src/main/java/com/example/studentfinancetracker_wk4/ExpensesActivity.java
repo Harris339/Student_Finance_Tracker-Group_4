@@ -56,31 +56,39 @@ public class ExpensesActivity extends AppCompatActivity {
             EditText etDescription = dialogView.findViewById(R.id.etDescription);
             EditText etAmount = dialogView.findViewById(R.id.etAmount);
             Button btnSave = dialogView.findViewById(R.id.btnSaveExpense);
+            ImageButton btnExit = dialogView.findViewById(R.id.btnExit);
 
             ArrayAdapter<CharSequence> catAdapter = ArrayAdapter.createFromResource(
                     this,
                     R.array.expense_categories,
-                    android.R.layout.simple_spinner_item
+                    R.layout.spinner_item_white
             );
 
-            catAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
 
             spCategory.setAdapter(catAdapter);
+            spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
 
             ArrayAdapter<CharSequence> freqAdapter = ArrayAdapter.createFromResource(
                     this,
                     R.array.expense_frequencies,
-                    android.R.layout.simple_spinner_item
+                    R.layout.spinner_item_white
             );
 
-            freqAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            freqAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
 
             spFrequency.setAdapter(freqAdapter);
+            spFrequency.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
 
 
             AlertDialog dialog = new AlertDialog.Builder(this)
                     .setView(dialogView)
                     .create();
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
+
             dialog.show();
 
             btnSave.setOnClickListener(view -> {
@@ -106,6 +114,8 @@ public class ExpensesActivity extends AppCompatActivity {
 
                 dialog.dismiss();
             });
+
+            btnExit.setOnClickListener(event -> dialog.dismiss());
         });
     }
 
@@ -125,7 +135,7 @@ public class ExpensesActivity extends AppCompatActivity {
         // Set text
         tvTitle.setText(expense.getTitle());
         tvAmount.setText(String.format("€%.2f", expense.getAmount()));
-        tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
+        tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
         tvFreq.setText(expense.getFrequency());
 
         tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
@@ -137,7 +147,7 @@ public class ExpensesActivity extends AppCompatActivity {
             expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
             expense.addNewHist();
             System.out.println(expense.getAllHistory());
-            tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
+            tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             etAmount.setText("");
             tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));

@@ -120,7 +120,7 @@ public class FixedExpense {
 
     public int getDaysUntilNextPayment() {
         if (frequency == null || lastPayment == null) {
-            return 10000;
+            return 0;
         }
 
         Map<String, Integer> freqMap = new HashMap<>();
