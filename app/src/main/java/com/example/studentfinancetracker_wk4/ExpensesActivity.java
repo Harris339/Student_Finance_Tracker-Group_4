@@ -138,9 +138,9 @@ public class ExpensesActivity extends AppCompatActivity {
             expense.addNewHist();
             System.out.println(expense.getAllHistory());
             tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
-            tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
             expense.setLastPayment(new Date());
             etAmount.setText("");
+            tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
         });
 
         // Menu button
@@ -160,6 +160,7 @@ public class ExpensesActivity extends AppCompatActivity {
             EditText etDesc = editView.findViewById(R.id.etDesc);
             EditText etEditAmount = editView.findViewById(R.id.etAmount);
             Button btnSet = editView.findViewById(R.id.btnSet);
+            Button btnDeleteDialog = editView.findViewById(R.id.btnDelete);
 
             tvEditTitle.setText(expense.getTitle());
             tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
@@ -272,11 +273,41 @@ public class ExpensesActivity extends AppCompatActivity {
                 tvTitle.setText(expense.getTitle());
                 tvAmount.setText(String.format("€%.2f", expense.getAmount()));
                 tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+                tvFreq.setText(expense.getFrequency());
+                tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
 
                 dialog.dismiss();
             });
-        });
 
+            btnDeleteDialog.setOnClickListener(event -> {
+                View delView = getLayoutInflater().inflate(R.layout.delete_expense_dialog, null);
+
+                Button btnCancel = delView.findViewById(R.id.btnCancel);
+                Button btnDelete = delView.findViewById(R.id.btnDelete);
+
+                AlertDialog delDialog = new AlertDialog.Builder(ExpensesActivity.this)
+                        .setView(delView)
+                        .create();
+
+                if (delDialog.getWindow() != null) {
+                    delDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                }
+
+                delDialog.show();
+
+                btnCancel.setOnClickListener(event1 -> {
+                    delDialog.dismiss();
+                    dialog.dismiss();
+                });
+
+                btnDelete.setOnClickListener(event1 -> {
+                    expenseList.removeExpense(expense);
+                    container.removeView(box);
+                    delDialog.dismiss();
+                    dialog.dismiss();
+                });
+            });
+        });
 
         container.addView(box);
     }

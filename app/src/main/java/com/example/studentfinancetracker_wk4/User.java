@@ -13,7 +13,7 @@ public class User {
         this.password = password;
         this.expenseList = new ExpenseList();
 
-        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "30", "");
+        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
 
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DAY_OF_MONTH, -10);

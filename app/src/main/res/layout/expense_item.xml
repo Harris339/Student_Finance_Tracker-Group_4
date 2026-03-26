@@ -51,11 +51,18 @@
             android:textColor="#FFFFFF"
             android:textSize="16sp"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="/"
+            android:textColor="@color/white"
+            android:textSize="16sp"/>
+
             <TextView
                 android:id="@+id/tvFreq"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="/Monthly"
+                android:text="Monthly"
                 android:textColor="@color/white"
                 android:textSize="16sp"/>
     </LinearLayout>
