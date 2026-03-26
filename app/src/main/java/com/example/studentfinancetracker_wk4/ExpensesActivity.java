@@ -146,25 +146,62 @@ public class ExpensesActivity extends AppCompatActivity {
 
         // Menu button
         btnMenu.setOnClickListener(v -> {
-            // Inflate dialog layout
             View editView = getLayoutInflater().inflate(R.layout.edit_expense, null);
+
+            TextView tvEditTitle = editView.findViewById(R.id.tvTitle);
+            TextView tvEditTotalAmount = editView.findViewById(R.id.tvEuroAmount);
+
             ImageButton btnExit = editView.findViewById(R.id.btnExit);
+            EditText editAmount = editView.findViewById(R.id.editAmount);
             Spinner spCategory = editView.findViewById(R.id.spCategory);
+            Spinner spFreq = editView.findViewById(R.id.spFreq);
+            EditText etTitle = editView.findViewById(R.id.etTitle);
+            EditText etDesc = editView.findViewById(R.id.etDesc);
+            EditText etEditAmount = editView.findViewById(R.id.etAmount);
+            Button btnSet = editView.findViewById(R.id.btnSet);
+
+            tvEditTitle.setText(expense.getTitle());
+            tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+
+            String titleStr = etTitle.getText().toString();
+            String descStr = etDesc.getText().toString();
+            String amountStr = etEditAmount.getText().toString();
+            String totalAmntStr = editAmount.getText().toString();
 
             ArrayAdapter<CharSequence> catEditAdapter = ArrayAdapter.createFromResource(
                     this,R.array.expense_categories,
                     R.layout.spinner_item_white
             );
 
-            catEditAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white     );
+            catEditAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
 
             spCategory.setAdapter(catEditAdapter);
             spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+            int catPos = catEditAdapter.getPosition(expense.getCategory());
+            spCategory.setSelection(catPos);
+
+            ArrayAdapter<CharSequence> freqEditAdapter =  ArrayAdapter.createFromResource(
+                    this, R.array.expense_frequencies,
+                    R.layout.spinner_item_white
+            );
+
+            freqEditAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+
+            spFreq.setAdapter(freqEditAdapter);
+            spFreq.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+            int freqPos = freqEditAdapter.getPosition(expense.getFrequency());
+            spFreq.setSelection(freqPos);
 
             // Create AlertDialog safely
             AlertDialog dialog = new AlertDialog.Builder(ExpensesActivity.this)
                     .setView(editView)
                     .create();
+
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
 
             dialog.show();
 
@@ -172,7 +209,40 @@ public class ExpensesActivity extends AppCompatActivity {
             if (btnExit != null) {
                 btnExit.setOnClickListener(eve -> dialog.dismiss());
             }
+
+            btnSet.setOnClickListener(event -> {
+                if(!totalAmntStr.isEmpty()) {
+                    expense.setTotalPaid(Double.parseDouble(totalAmntStr));
+                }
+
+                if(!spCategory.getSelectedItem().toString().equals(expense.getCategory())) {
+                    expense.setCategory(spCategory.getSelectedItem().toString());
+                }
+
+                if(!spFreq.getSelectedItem().toString().equals(expense.getFrequency())) {
+                    expense.setFrequency(spFreq.getSelectedItem().toString());
+                }
+
+                if(!titleStr.isEmpty()) {
+                    expense.setTitle(titleStr);
+                }
+
+                if(!descStr.isEmpty()){
+                    expense.setNotes(descStr);
+                }
+
+                if(!amountStr.isEmpty()) {
+                    expense.setAmount(Double.parseDouble(amountStr));
+                }
+
+                tvTitle.setText(expense.getTitle());
+                tvAmount.setText(String.format("€%.2f", expense.getAmount()));
+                tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+
+                dialog.dismiss();
+            });
         });
+
 
         container.addView(box);
     }

@@ -20,20 +20,23 @@
         android:id="@+id/etTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Title" />
+        android:hint="Title"
+        android:textColorHint="@color/white"/>
 
     <EditText
         android:id="@+id/etDescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Description" />
+        android:hint="Description"
+        android:textColorHint="@color/white"/>
 
     <EditText
         android:id="@+id/etAmount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Amount"
-        android:inputType="numberDecimal" />
+        android:inputType="numberDecimal"
+        android:textColorHint="@color/white"/>
 
     <Button
         android:id="@+id/btnSaveExpense"
