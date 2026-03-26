@@ -15,6 +15,12 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class createUserActivity extends AppCompatActivity {
     FirebaseAuth mAuth;
@@ -30,6 +36,7 @@ public class createUserActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_user);
 
         mAuth = FirebaseAuth.getInstance();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         emailInput = findViewById(R.id.emailInput);
         passwordInput = findViewById(R.id.passwordInput);
@@ -46,6 +53,21 @@ public class createUserActivity extends AppCompatActivity {
                                 // Sign in success, update UI with the signed-in user's information
                                 Log.d(TAG, "createUserWithEmail:success");
                                 FirebaseUser user = mAuth.getCurrentUser();
+
+                                if (user != null) {
+                                    DocumentReference userRef = db.collection("users").document(user.getUid());
+
+                                    userRef.get().addOnSuccessListener(documentSnapshot -> {
+                                        if (!documentSnapshot.exists()) {
+
+                                            Map<String, Object> userData = new HashMap<>();
+                                            userData.put("email", user.getEmail());
+                                            userData.put("createdAt", new Date());
+
+                                            userRef.set(userData);
+                                        }
+                                    });
+                                }
                                 Intent intent = new Intent(createUserActivity.this, HomeActivity.class);
                                 startActivity(intent);
                             } else {
