@@ -1,7 +1,9 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.media.Image;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -102,8 +104,6 @@ public class ExpensesActivity extends AppCompatActivity {
 
                 addExpenseBox(expense);
 
-                Toast.makeText(this, expenseList.toString(), Toast.LENGTH_SHORT).show();
-
                 dialog.dismiss();
             });
         });
@@ -117,31 +117,28 @@ public class ExpensesActivity extends AppCompatActivity {
         TextView tvAmount = box.findViewById(R.id.tvAmount);
         Button btnPay = box.findViewById(R.id.btnPay);
         TextView tvTotalPaid = box.findViewById(R.id.tvTotalPaid);
-        TextView tvLastPayment = box.findViewById(R.id.tvLastPayment);
+        TextView tvNextPayment = box.findViewById(R.id.tvNextPayment);
         EditText etAmount = box.findViewById(R.id.etAmount);
         ImageButton btnMenu = box.findViewById(R.id.btnMenu);
+        TextView tvFreq = box.findViewById(R.id.tvFreq);
 
         // Set text
         tvTitle.setText(expense.getTitle());
         tvAmount.setText(String.format("€%.2f", expense.getAmount()));
         tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
+        tvFreq.setText(expense.getFrequency());
 
-        Date lastPayment = expense.getLastPayment();
-        if (lastPayment == null) {
-            tvLastPayment.setText("N/A");
-        } else {
-            long diffMillis = new Date().getTime() - lastPayment.getTime();
-            long daysElapsed = TimeUnit.MILLISECONDS.toDays(diffMillis);
-            tvLastPayment.setText(String.valueOf(daysElapsed));
-        }
+        tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
 
         // Pay button
         btnPay.setOnClickListener(v -> {
             String input = etAmount.getText().toString().trim();
             double amountToPay = input.isEmpty() ? expense.getAmount() : Double.parseDouble(input);
             expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
+            expense.addNewHist();
+            System.out.println(expense.getAllHistory());
             tvTotalPaid.setText(String.format("Total paid: €%.2f", expense.getTotalPaid()));
-            tvLastPayment.setText("0");
+            tvNextPayment.setText(String.valueOf(expense.getDaysUntilNextPayment()));
             expense.setLastPayment(new Date());
             etAmount.setText("");
         });
@@ -154,6 +151,8 @@ public class ExpensesActivity extends AppCompatActivity {
             TextView tvEditTotalAmount = editView.findViewById(R.id.tvEuroAmount);
 
             ImageButton btnExit = editView.findViewById(R.id.btnExit);
+            ImageButton btnUndo = editView.findViewById(R.id.btnUndo);
+            ImageButton btnRedo = editView.findViewById(R.id.btnRedo);
             EditText editAmount = editView.findViewById(R.id.editAmount);
             Spinner spCategory = editView.findViewById(R.id.spCategory);
             Spinner spFreq = editView.findViewById(R.id.spFreq);
@@ -206,6 +205,39 @@ public class ExpensesActivity extends AppCompatActivity {
             if (btnExit != null) {
                 btnExit.setOnClickListener(eve -> dialog.dismiss());
             }
+
+            btnUndo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(-1));
+
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+
+                if(expense.getPos() < 0) {
+                    btnUndo.setImageTintList(
+                            ColorStateList.valueOf(Color.parseColor("#B3B1B1"))
+                    );
+                } else {
+                    btnUndo.setImageTintList(
+                            ColorStateList.valueOf(Color.parseColor("#FFFFFF"))
+                    );
+                }
+
+                if(expense.getPos() >= expense.getPaymentHist().size()) {
+                    btnRedo.setImageTintList(
+                            ColorStateList.valueOf(Color.parseColor("#B3B1B1"))
+                    );
+                } else {
+                    btnRedo.setImageTintList(
+                            ColorStateList.valueOf(Color.parseColor("#FFFFFF"))
+                    );
+                }
+            });
+
+
+            btnRedo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(1));
+
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+            });
 
             btnSet.setOnClickListener(event -> {
                 String titleStr = etTitle.getText().toString();

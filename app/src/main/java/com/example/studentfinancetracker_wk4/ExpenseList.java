@@ -6,7 +6,9 @@ import java.util.List;
 public class ExpenseList {
     private List<FixedExpense> expenses;
 
-    public ExpenseList(){ expenses = new ArrayList<>(); }
+    public ExpenseList(){
+        expenses = new ArrayList<>();
+    }
 
     public void addExpense(FixedExpense expense){ expenses.add(expense); }
 

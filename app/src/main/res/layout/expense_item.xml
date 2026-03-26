@@ -47,9 +47,17 @@
             android:id="@+id/tvAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="$15/Month"
+            android:text="$15"
             android:textColor="#FFFFFF"
             android:textSize="16sp"/>
+
+            <TextView
+                android:id="@+id/tvFreq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="/Monthly"
+                android:textColor="@color/white"
+                android:textSize="16sp"/>
     </LinearLayout>
 
     <!-- Bottom row: Custom Amount + Pay button -->
@@ -92,11 +100,11 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Days since last payment: "
-            android:textColor="@color/white"/>
+            android:text="Days until next payment: "
+            android:textColor="@color/white" />
 
         <TextView
-            android:id="@+id/tvLastPayment"
+            android:id="@+id/tvNextPayment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="--"
