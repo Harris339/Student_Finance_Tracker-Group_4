@@ -21,10 +21,11 @@
         <ImageButton
             android:id="@+id/btnMenu"
             android:layout_width="wrap_content"
-            android:layout_height="16dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_more_horiz"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Menu"/>
+
     </LinearLayout>
     <!-- Top row: Title + Amount per period -->
     <LinearLayout
@@ -42,7 +43,7 @@
             android:textSize="18sp"
             android:textStyle="bold"/>
 
-        <TextView
+            <TextView
             android:id="@+id/tvAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
