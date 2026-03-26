@@ -39,8 +39,10 @@ public class ExpensesActivity extends AppCompatActivity {
         currentUser = SessionManager.getInstance().getCurrentUser();
         if (currentUser != null) expenseList = currentUser.getExpenseList();
 
-        for (FixedExpense expense : expenseList.getAllExpenses()) {
-            addExpenseBox(expense);
+        if(expenseList != null) {
+            for (FixedExpense expense : expenseList.getAllExpenses()) {
+                addExpenseBox(expense);
+            }
         }
 
         addButton.setOnClickListener(v -> {
@@ -163,11 +165,6 @@ public class ExpensesActivity extends AppCompatActivity {
             tvEditTitle.setText(expense.getTitle());
             tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
 
-            String titleStr = etTitle.getText().toString();
-            String descStr = etDesc.getText().toString();
-            String amountStr = etEditAmount.getText().toString();
-            String totalAmntStr = editAmount.getText().toString();
-
             ArrayAdapter<CharSequence> catEditAdapter = ArrayAdapter.createFromResource(
                     this,R.array.expense_categories,
                     R.layout.spinner_item_white
@@ -211,6 +208,11 @@ public class ExpensesActivity extends AppCompatActivity {
             }
 
             btnSet.setOnClickListener(event -> {
+                String titleStr = etTitle.getText().toString();
+                String descStr = etDesc.getText().toString();
+                String amountStr = etEditAmount.getText().toString();
+                String totalAmntStr = editAmount.getText().toString();
+
                 if(!totalAmntStr.isEmpty()) {
                     expense.setTotalPaid(Double.parseDouble(totalAmntStr));
                 }
