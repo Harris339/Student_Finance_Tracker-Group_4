@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -30,6 +31,8 @@ public class createUserActivity extends AppCompatActivity {
     EditText emailInput, passwordInput;
     Button createButton;
 
+    ImageButton backButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,6 +44,7 @@ public class createUserActivity extends AppCompatActivity {
         emailInput = findViewById(R.id.emailInput);
         passwordInput = findViewById(R.id.passwordInput);
         createButton = findViewById(R.id.createButton);
+        backButton = findViewById(R.id.btnBack);
 
         createButton.setOnClickListener(v ->{
             String email = emailInput.getText().toString();
@@ -79,6 +83,10 @@ public class createUserActivity extends AppCompatActivity {
                             }
                         }
                     });
+        });
+
+        backButton.setOnClickListener(v -> {
+            finish();
         });
 
     }
