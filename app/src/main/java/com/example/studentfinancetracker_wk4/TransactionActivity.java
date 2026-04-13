@@ -22,7 +22,7 @@ import java.util.Map;
 
 public class TransactionActivity extends AppCompatActivity {
 
-    Button addIncomeBtn, addExpenseBtn, Backbtn;
+    Button viewBtn, addIncomeBtn, addExpenseBtn, Backbtn;
 
     double totalIncome = 0;
     double totalExpenses = 0;
@@ -32,10 +32,16 @@ public class TransactionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction);
 
+        viewBtn = findViewById(R.id.transactions);
         addIncomeBtn = findViewById(R.id.addIncomeBtn);
         addExpenseBtn = findViewById(R.id.addExpenseBtn);
         Backbtn = findViewById(R.id.BackBtn);
 
+
+        viewBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(TransactionActivity.this, ViewTransactionsActivity.class);
+            startActivity(intent);
+        });
         addIncomeBtn.setOnClickListener(v -> {
             Intent intent = new Intent(TransactionActivity.this, IncomeActivity.class);
             startActivity(intent);
