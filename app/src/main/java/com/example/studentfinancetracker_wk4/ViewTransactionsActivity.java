@@ -25,6 +25,7 @@ public class ViewTransactionsActivity extends AppCompatActivity {
     private static final String TAG = "viewTransactionsActivity";
     TextView textView;
     ImageButton backbtn;
+    Button categorybtn;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
@@ -39,6 +40,9 @@ public class ViewTransactionsActivity extends AppCompatActivity {
             String userId = user.getUid();
             textView = findViewById(R.id.View);
             backbtn = findViewById(R.id.btnBack);
+            categorybtn = findViewById(R.id.categoryBtn);
+
+            //categorybtn.setOnClickListener();
 
             backbtn.setOnClickListener(v -> finish());
 

@@ -45,8 +45,20 @@
 
             app:layout_constraintStart_toEndOf="@id/btnBack"
             app:layout_constraintTop_toTopOf="parent"
+
             app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginStart="12dp"/>
+
+        <Button
+            android:id="@+id/categoryBtn"
+            android:layout_width="140dp"
+            android:text="Filter Categories"
+            android:layout_height="55dp"
+            android:contentDescription="Back"
+
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
