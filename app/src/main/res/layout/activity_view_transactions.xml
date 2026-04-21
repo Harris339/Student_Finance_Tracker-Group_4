@@ -50,9 +50,9 @@
             android:layout_marginStart="12dp"/>
 
         <Button
-            android:id="@+id/categoryBtn"
+            android:id="@+id/filterBtn"
             android:layout_width="140dp"
-            android:text="Filter Categories"
+            android:text="Filter Transactions"
             android:layout_height="55dp"
             android:contentDescription="Back"
 

@@ -2,7 +2,7 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.StudentFinanceTrackerWk4" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light/dark theme here -->
-        <item name="android:windowBackground">#2C2C2C</item>
+        <item name="android:windowBackground">#555555</item>
         <item name="android:textColor">#ffffff</item>
     </style>
 

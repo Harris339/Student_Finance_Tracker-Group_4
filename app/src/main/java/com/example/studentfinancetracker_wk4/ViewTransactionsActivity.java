@@ -3,11 +3,15 @@ package com.example.studentfinancetracker_wk4;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -25,7 +29,7 @@ public class ViewTransactionsActivity extends AppCompatActivity {
     private static final String TAG = "viewTransactionsActivity";
     TextView textView;
     ImageButton backbtn;
-    Button categorybtn;
+    Button filterbtn;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
@@ -40,9 +44,46 @@ public class ViewTransactionsActivity extends AppCompatActivity {
             String userId = user.getUid();
             textView = findViewById(R.id.View);
             backbtn = findViewById(R.id.btnBack);
-            categorybtn = findViewById(R.id.categoryBtn);
+            filterbtn = findViewById(R.id.filterBtn);
 
-            //categorybtn.setOnClickListener();
+            filterbtn.setOnClickListener(v -> {
+                        View dialogView = getLayoutInflater().inflate(R.layout.filter_transaction_search, null);
+
+                        Spinner spCategory = dialogView.findViewById(R.id.spCategory);
+                        Spinner spFrequency = dialogView.findViewById(R.id.spFrequency);
+//                        Button btnSave = dialogView.findViewById(R.id.btnSaveExpense);
+                        ImageButton btnExit = dialogView.findViewById(R.id.btnExit);
+
+                        ArrayAdapter<CharSequence> catAdapter = ArrayAdapter.createFromResource(
+                                this,
+                                R.array.expense_categories,
+                                R.layout.spinner_item_white
+                        );
+
+                        catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+
+                        spCategory.setAdapter(catAdapter);
+                        //spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+                        ArrayAdapter<CharSequence> freqAdapter = ArrayAdapter.createFromResource(
+                                this,
+                                R.array.expense_frequencies,
+                                R.layout.spinner_item_white
+                        );
+
+                        freqAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+
+                        spFrequency.setAdapter(freqAdapter);
+                        //spFrequency.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+                        AlertDialog dialog = new AlertDialog.Builder(this)
+                            .setView(dialogView)
+                            .create();
+
+                        dialog.show();
+
+                btnExit.setOnClickListener(event -> dialog.dismiss());
+                        });
 
             backbtn.setOnClickListener(v -> finish());
 
