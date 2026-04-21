@@ -57,10 +57,12 @@ public class ViewTransactionsActivity extends AppCompatActivity {
 
                             for (QueryDocumentSnapshot document : task.getResult()) {
 
+                                String type = document.getString("type");
                                 String category = document.getString("category");
                                 Double amount = document.getDouble("amount");
                                 String date = document.getString("date");
 
+                                builder.append("Type: ").append(type != null ? type : "N/A").append("\n");
                                 builder.append("Category: ").append(category != null ? category : "N/A").append("\n");
                                 builder.append("Amount: €").append(amount != null ? amount : 0).append("\n");
                                 builder.append("Date: ").append(date != null ? date : "N/A").append("\n");

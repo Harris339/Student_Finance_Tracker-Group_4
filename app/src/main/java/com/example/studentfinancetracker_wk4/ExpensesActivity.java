@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ExpensesActivity extends AppCompatActivity {
     Button addButton;
+    ImageButton backbtn;
 
 
     User currentUser;
@@ -37,6 +38,7 @@ public class ExpensesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_fixed_expenses);
 
         addButton = findViewById(R.id.addButton);
+        backbtn = findViewById(R.id.btnBack);
 
         currentUser = SessionManager.getInstance().getCurrentUser();
         if (currentUser != null) expenseList = currentUser.getExpenseList();
@@ -117,6 +119,8 @@ public class ExpensesActivity extends AppCompatActivity {
 
             btnExit.setOnClickListener(event -> dialog.dismiss());
         });
+
+        backbtn.setOnClickListener(v -> finish());
     }
 
     private void addExpenseBox(FixedExpense expense) {
