@@ -34,6 +34,12 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <Button
+            android:id="@+id/transactions"
+            android:text="View Transactions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+
+        <Button
             android:id="@+id/addIncomeBtn"
             android:text="Add Income"
             android:layout_width="match_parent"
