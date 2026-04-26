@@ -18,6 +18,7 @@ public class FixedExpense {
     private Date lastPayment;
 
     private List<Double> paymentHist;
+    private List<Date> paymentDates;
 
     private int pos = 0;
 
@@ -30,10 +31,10 @@ public class FixedExpense {
         this.totalPaid = 0.0;
         this.lastPayment = null;
         this.paymentHist = new ArrayList<>();
-
+        this.paymentDates = new ArrayList<>();
         paymentHist.add(totalPaid);
+        paymentDates.add(null);
     }
-
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes, double totalPaid) {
         this.category = category;
@@ -43,6 +44,7 @@ public class FixedExpense {
         this.notes = notes;
         this.totalPaid = totalPaid;
         this.paymentHist = new ArrayList<>();
+        this.paymentDates = new ArrayList<>();
     }
 
     public String getAllHistory(){
@@ -107,6 +109,7 @@ public class FixedExpense {
 
     public void addNewHist(){
         paymentHist.add(totalPaid);
+        paymentDates.add(new Date());
         pos = paymentHist.size() - 1;
     }
 
@@ -116,6 +119,19 @@ public class FixedExpense {
 
     public List<Double> getPaymentHist() {
         return paymentHist;
+    }
+
+    public List<Date> getPaymentDates() {
+        return paymentDates;
+    }
+
+    public double getAnnualCost() {
+        Map<String, Double> multipliers = new HashMap<>();
+        multipliers.put("Daily", 365.0);
+        multipliers.put("Weekly", 52.0);
+        multipliers.put("Monthly", 12.0);
+        multipliers.put("Yearly", 1.0);
+        return amount * multipliers.getOrDefault(frequency, 0.0);
     }
 
     public int getDaysUntilNextPayment() {
@@ -138,6 +154,35 @@ public class FixedExpense {
         int daysLeft = (int) (cycleDays - daysPassed);
 
         return Math.max(daysLeft, 0);
+    }
+
+    public int processCompletedCycles() {
+        if (lastPayment == null || frequency == null) return 0;
+
+        Map<String, Integer> freqMap = new HashMap<>();
+        freqMap.put("Daily", 1);
+        freqMap.put("Weekly", 7);
+        freqMap.put("Monthly", 30);
+        freqMap.put("Yearly", 365);
+
+        int cycleDays = freqMap.getOrDefault(frequency, 0);
+        if (cycleDays == 0) return 0;
+
+        long diffMillis = new Date().getTime() - lastPayment.getTime();
+        long daysPassed = diffMillis / (1000 * 60 * 60 * 24);
+        int cyclesCompleted = (int) (daysPassed / cycleDays);
+
+        for (int i = 0; i < cyclesCompleted; i++) {
+            totalPaid += amount;
+            addNewHist();
+        }
+
+        if (cyclesCompleted > 0) {
+            lastPayment = new Date(lastPayment.getTime()
+                    + (long) cyclesCompleted * cycleDays * 24L * 60 * 60 * 1000);
+        }
+
+        return cyclesCompleted;
     }
 
     public double getHistAtCurIndex(int change){

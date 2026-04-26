@@ -21,6 +21,14 @@ public class User {
         expense.setLastPayment(tendaysago);
 
         expenseList.addExpense(expense);
+
+        FixedExpense subscription = new FixedExpense("Subscriptions", "Netflix", 15.99, "Monthly", "");
+        Calendar subCal = Calendar.getInstance();
+        subCal.add(Calendar.DAY_OF_MONTH, -20);
+        subscription.setLastPayment(subCal.getTime());
+        subscription.setTotalPaid(31.98);
+        subscription.addNewHist();
+        expenseList.addExpense(subscription);
     }
 
     public User(){
