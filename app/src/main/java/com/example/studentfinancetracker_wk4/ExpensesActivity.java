@@ -194,7 +194,7 @@ public class ExpensesActivity extends AppCompatActivity {
 
         btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
 
-        btnPay.setOnClickListener(v -> {
+        btnPay.setOnClickListener(ev -> {
             String input = etAmount.getText().toString().trim();
             double amountToPay;
             if (input.isEmpty()) {
@@ -220,7 +220,7 @@ public class ExpensesActivity extends AppCompatActivity {
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
         });
 
-        btnMenu.setOnClickListener(v -> {
+        btnMenu.setOnClickListener(ve -> {
             View editView = getLayoutInflater().inflate(R.layout.edit_expense, null);
 
             TextView    tvEditTitle       = editView.findViewById(R.id.tvTitle);
@@ -390,7 +390,7 @@ public class ExpensesActivity extends AppCompatActivity {
 
         btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
 
-        btnMenu.setOnClickListener(v -> {
+        btnMenu.setOnClickListener(ev -> {
             View editView = getLayoutInflater().inflate(R.layout.edit_expense, null);
 
             TextView    tvEditTitle       = editView.findViewById(R.id.tvTitle);
