@@ -211,6 +211,7 @@ public class ExpensesActivity extends AppCompatActivity {
                     return;
                 }
             }
+            recordTransaction(tvCategory.getText().toString(), amountToPay);
             expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
             expense.addNewHist();
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
@@ -607,16 +608,44 @@ public class ExpensesActivity extends AppCompatActivity {
         btnClose.setOnClickListener(vv -> dialog.dismiss());
     }
 
-    private void recordTransaction(String category, double amount) {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            Map<String, Object> tx = new HashMap<>();
-            tx.put("amount", amount);
-            tx.put("type", "Expense");
-            tx.put("category", category);
-            tx.put("createdAt", new Date());
-            db.collection("users").document(user.getUid()).collection("transactions").add(tx);
-        }
+//    private void recordTransaction(String category, double amount) {
+//        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+//        if (user != null) {
+//            FirebaseFirestore db = FirebaseFirestore.getInstance();
+//            Map<String, Object> tx = new HashMap<>();
+//            tx.put("amount", amount);
+//            tx.put("type", "Expense");
+//            tx.put("category", category);
+//            tx.put("createdAt", new Date());
+//            db.collection("users").document(user.getUid()).collection("transactions").add(tx);
+//
+//        }
+//    }
+private void recordTransaction(String category, double amount) {
+    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+    if (user == null) {
+        Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+        return;
     }
+
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+    Map<String, Object> tx = new HashMap<>();
+    tx.put("amount", amount);
+    tx.put("type", "Expense");
+    tx.put("category", category);
+    tx.put("createdAt", new Date());
+
+    db.collection("users")
+            .document(user.getUid())
+            .collection("transactions")
+            .add(tx)
+            .addOnSuccessListener(doc ->
+                    Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+            )
+            .addOnFailureListener(e ->
+                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
+            );
+}
 }
