@@ -9,11 +9,14 @@ public class User {
     private double balance;
     private String password;
     private ExpenseList expenseList;
+    private SavingsList savingsList;
+
     public User(String email, String password){
         this.email = email;
         this.password = password;
         balance = 0.0;
         this.expenseList = new ExpenseList();
+        this.savingsList = new SavingsList();
 
         FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
 
@@ -31,13 +34,18 @@ public class User {
         subscription.setTotalPaid(31.98);
         subscription.addNewHist();
         expenseList.addExpense(subscription);
+
+        SavingsGoal laptop = new SavingsGoal("New Laptop", "Saving for a MacBook Pro", 1500.00, null);
+        laptop.addContribution(250.00);
+        laptop.addContribution(100.00);
+        savingsList.addGoal(laptop);
     }
 
     public User(){
         email = "";
         balance = 0.0;
         password = "";
-
+        this.savingsList = new SavingsList();
     }
 
     public String getPassword() {
@@ -66,4 +74,5 @@ public class User {
     }
 
     public ExpenseList getExpenseList(){ return expenseList; }
+    public SavingsList getSavingsList(){ return savingsList; }
 }
