@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="HOME SCREEN"
+        android:text="Student Finance Tracker"
         android:textSize="28sp"
         android:layout_marginBottom="24dp"/>
 
@@ -37,7 +37,7 @@
         android:id="@+id/chartBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Go to Chart Page"
+        android:text="View your analytics"
         android:layout_marginTop="12dp"/>
 
 </LinearLayout>
