@@ -11,6 +11,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,8 +50,36 @@ public class IncomeActivity extends TransactionActivity {
     private void addIncome(String category, double amount) {
         totalIncome += amount;
 
+        SmartPercentageDivider divider =
+                SessionManager.getInstance().getCurrentUser().getPercDivider();
+
+        divider.allocateIncome(amount);
+
+        saveDivider(divider);
+
         transaction(category, amount, "Income");
 
         Toast.makeText(this, "Income Added", Toast.LENGTH_SHORT).show();
+    }
+
+    private void saveDivider(SmartPercentageDivider divider) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        for (Category c : divider.getAllDividers()) {
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("percentage", c.getPercentage());
+            data.put("balance", c.getBalance());
+            data.put("lastAllocation", c.getLastAllocation());
+
+            db.collection("users")
+                    .document(user.getUid())
+                    .collection("percDividers")
+                    .document(c.getCategory())
+                    .set(data);
+        }
     }
 }

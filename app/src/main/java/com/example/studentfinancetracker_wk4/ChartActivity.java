@@ -24,16 +24,21 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ChartActivity extends AppCompatActivity {
 
     Button previousBtn, nextBtn, backBtn, editBtn, addBtn;
     TextView tvMonthLabel;
     WebView barChartView, pieChartView, lineChartView;
-    User user = SessionManager.getInstance().getCurrentUser();
-    SmartPercentageDivider divider = user.getPercDivider();
+    FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    FirebaseUser user = mAuth.getCurrentUser();
+    User sessionUser = SessionManager.getInstance().getCurrentUser();
+    SmartPercentageDivider divider = sessionUser.getPercDivider();
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
     LinearLayout categoryContainer;
 
     // Negative = past months, 0 = current month
@@ -60,6 +65,7 @@ public class ChartActivity extends AppCompatActivity {
         setupWebView(pieChartView);
         setupWebView(lineChartView);
 
+        loadDividerFromFirebase();
         loadChartData();
 
         previousBtn.setOnClickListener(v -> {
@@ -147,7 +153,7 @@ public class ChartActivity extends AppCompatActivity {
 
                 divider.setAllDividers(updated);
 
-                renderCategories();
+                loadDividerFromFirebase();
                 Toast.makeText(this, "Updated", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -212,9 +218,20 @@ public class ChartActivity extends AppCompatActivity {
                     }
                 }
 
+                Map<String, Object> category = new HashMap<>();
+                category.put("percentage", percent);
+                category.put("balance", 0);
+                category.put("lastAllocation", 0);
+
+                db.collection("users")
+                        .document(user.getUid())
+                        .collection("percDividers")
+                        .document(name)
+                        .set(category);
+
                 divider.addDivider(name, percent);
 
-                renderCategories();
+                loadDividerFromFirebase();
 
                 Toast.makeText(this, "Category Added", Toast.LENGTH_SHORT).show();
 
@@ -223,6 +240,41 @@ public class ChartActivity extends AppCompatActivity {
 
             dialog.show();
         });
+    }
+
+    private void loadDividerFromFirebase() {
+
+        db.collection("users")
+                .document(user.getUid())
+                .collection("percDividers")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+
+                    List<Category> list = new java.util.ArrayList<>();
+
+                    for (QueryDocumentSnapshot doc : snapshot) {
+
+                        String name = doc.getId();
+
+                        Double percent = doc.getDouble("percentage");
+                        Double balance = doc.getDouble("balance");
+                        Double last = doc.getDouble("lastAllocation");
+
+                        if (percent == null) percent = 0.0;
+                        if (balance == null) balance = 0.0;
+                        if (last == null) last = 0.0;
+
+                        Category c = new Category(name, percent);
+                        c.setBalance(balance);
+                        c.setLastAllocation(last);
+
+                        list.add(c);
+                    }
+
+                    divider.setAllDividers(list);
+
+                    renderCategories();
+                });
     }
 
     private void renderCategories() {

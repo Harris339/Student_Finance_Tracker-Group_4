@@ -5,6 +5,7 @@ import java.util.List;
 
 public class SmartPercentageDivider {
     private List<Category> divisions;
+    User user = SessionManager.getInstance().getCurrentUser();
 
     public SmartPercentageDivider() {
         divisions = new ArrayList<>();
@@ -19,6 +20,56 @@ public class SmartPercentageDivider {
     }
 
     public void setAllDividers(List<Category> newDivisions) {
+        double total = 0;
+
+        for (Category c : newDivisions) {
+            total += c.getPercentage();
+        }
+
+        if (total == 0) {
+            divisions.clear();
+            divisions.addAll(newDivisions);
+            return;
+        }
+
+        // Step 1: Normalize
+        List<Double> normalized = new ArrayList<>();
+        for (Category c : newDivisions) {
+            normalized.add((c.getPercentage() / total) * 100);
+        }
+
+        // Step 2: Floor values and track remainders
+        int[] finalInts = new int[normalized.size()];
+        double[] remainders = new double[normalized.size()];
+        int sum = 0;
+
+        for (int i = 0; i < normalized.size(); i++) {
+            finalInts[i] = (int) Math.floor(normalized.get(i));
+            remainders[i] = normalized.get(i) - finalInts[i];
+            sum += finalInts[i];
+        }
+
+        // Step 3: Distribute remaining %
+        int remaining = 100 - sum;
+
+        while (remaining > 0) {
+            int maxIndex = 0;
+            for (int i = 1; i < remainders.length; i++) {
+                if (remainders[i] > remainders[maxIndex]) {
+                    maxIndex = i;
+                }
+            }
+
+            finalInts[maxIndex]++;
+            remainders[maxIndex] = 0; // prevent re-picking
+            remaining--;
+        }
+
+        // Step 4: Apply results
+        for (int i = 0; i < newDivisions.size(); i++) {
+            newDivisions.get(i).setPercentage(finalInts[i]);
+        }
+
         divisions.clear();
         divisions.addAll(newDivisions);
     }
@@ -89,8 +140,24 @@ public class SmartPercentageDivider {
         return true;
     }
 
-    public void allocateIncome(double income) {
+    public double getTotalAllocations() {
+        double total = 0;
         for (Category c : divisions) {
+            total += c.getLastAllocation();
+        }
+        return total;
+    }
+
+    public void allocateIncome(double income) {
+        double otherAllocation = 0;
+
+        if (getTotalAllocations() < user.getBalance()) {
+            otherAllocation= user.getBalance() - getTotalAllocations();
+        }
+        for (Category c : divisions) {
+            if (c.getCategory().equals("Other")) {
+                c.setBalance(c.getBalance() + otherAllocation);
+            }
             double allocation = (c.getPercentage() / 100) * income;
 
             c.setLastAllocation(allocation);
