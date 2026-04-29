@@ -4,14 +4,14 @@ public class Category {
 
     private String category;
     private double percentage;
-    private double totalAllocatedToDate;
     private double lastAllocation;
+    private double balance;
 
     public Category(String category, double percentage) {
         this.category = category;
         this.percentage = percentage;
-        this.totalAllocatedToDate = 0;
         this.lastAllocation = 0;
+        this.balance = 0;
     }
 
     public String getCategory() {
@@ -22,12 +22,13 @@ public class Category {
         return percentage;
     }
 
-    public double getTotalAllocatedToDate() {
-        return totalAllocatedToDate;
-    }
 
     public double getLastAllocation() {
         return lastAllocation;
+    }
+
+    public double getBalance() {
+        return balance;
     }
 
     public void setCategory(String category) {
@@ -38,19 +39,20 @@ public class Category {
         this.percentage = percentage;
     }
 
-    public void setTotalAllocatedToDate(double totalAllocatedToDate) {
-        this.totalAllocatedToDate += totalAllocatedToDate;
-    }
 
     public void setLastAllocation(double lastAllocation) {
         this.lastAllocation = lastAllocation;
+    }
+
+    public void setBalance(double balance) {
+        this.balance = balance;
     }
 
     @Override
     public String toString(){
         return "Category: " + category + "\n" +
                 "Percentage: " + percentage + "\n" +
-                "Total Allocated To Date: " + totalAllocatedToDate + "\n" +
+                "Balance for this Category: " + balance + "\n" +
                 "Last Allocation: " + lastAllocation + "\n\n";
     }
 }
