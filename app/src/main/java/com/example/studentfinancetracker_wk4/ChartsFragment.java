@@ -28,8 +28,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ChartsFragment extends Fragment {
 
@@ -40,6 +42,7 @@ public class ChartsFragment extends Fragment {
 
     private User user;
     private SmartPercentageDivider divider;
+    private FirebaseFirestore db;
 
     private int currentOffset = 0;
 
@@ -54,6 +57,7 @@ public class ChartsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        db = FirebaseFirestore.getInstance();
 
         user = SessionManager.getInstance().getCurrentUser();
         if (user == null) return;
@@ -76,6 +80,7 @@ public class ChartsFragment extends Fragment {
         setupWebView(pieChartView);
         setupWebView(lineChartView);
 
+        loadDividerFromFirebase();
         loadChartData();
 
         previousBtn.setOnClickListener(v -> {
@@ -91,7 +96,8 @@ public class ChartsFragment extends Fragment {
         });
 
         editBtn.setOnClickListener(v -> {
-            View editView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_edit_divider, null);
+            View editView = LayoutInflater.from(requireContext())
+                    .inflate(R.layout.dialog_edit_divider, null);
 
             LinearLayout editContainer = editView.findViewById(R.id.editContainer);
             Button btnSave = editView.findViewById(R.id.btnSave);
@@ -145,7 +151,7 @@ public class ChartsFragment extends Fragment {
                 }
 
                 divider.setAllDividers(updated);
-                renderCategories();
+                loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -172,6 +178,10 @@ public class ChartsFragment extends Fragment {
                     .create();
 
             btnAdd.setOnClickListener(v2 -> {
+                FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (firebaseUser == null) return;
+                String uid = firebaseUser.getUid();
+
                 String name = spCategory.getSelectedItem().toString();
                 String percentStr = etPercent.getText().toString().trim();
 
@@ -193,10 +203,6 @@ public class ChartsFragment extends Fragment {
                     return;
                 }
 
-                if (percent > 0 && percent < 100 && divider.getAllDividers().isEmpty()) {
-                    divider.addDivider("Other", 100 - percent);
-                }
-
                 for (Category c : divider.getAllDividers()) {
                     if (c.getCategory().equals(name)) {
                         Toast.makeText(requireContext(), "Category already exists", Toast.LENGTH_SHORT).show();
@@ -204,14 +210,62 @@ public class ChartsFragment extends Fragment {
                     }
                 }
 
+                Map<String, Object> category = new HashMap<>();
+                category.put("percentage", percent);
+                category.put("balance", 0);
+                category.put("lastAllocation", 0);
+
+                db.collection("users")
+                        .document(uid)
+                        .collection("percDividers")
+                        .document(name)
+                        .set(category);
+
                 divider.addDivider(name, percent);
-                renderCategories();
+                loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
 
             dialog.show();
         });
+    }
+
+    private void loadDividerFromFirebase() {
+
+        // ✅ FIX: correct UID source
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        db.collection("users")
+                .document(firebaseUser.getUid())
+                .collection("percDividers")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+
+                    List<Category> list = new java.util.ArrayList<>();
+
+                    for (QueryDocumentSnapshot doc : snapshot) {
+
+                        String name = doc.getId();
+                        Double percent = doc.getDouble("percentage");
+                        Double balance = doc.getDouble("balance");
+                        Double last = doc.getDouble("lastAllocation");
+
+                        if (percent == null) percent = 0.0;
+                        if (balance == null) balance = 0.0;
+                        if (last == null) last = 0.0;
+
+                        Category c = new Category(name, percent);
+                        c.setBalance(balance);
+                        c.setLastAllocation(last);
+
+                        list.add(c);
+                    }
+
+                    divider.setAllDividers(list);
+                    renderCategories();
+                });
     }
 
     @Override
