@@ -20,6 +20,8 @@ public class FixedExpense {
     private List<Double> paymentHist;
     private List<Date> paymentDates;
 
+    User user = SessionManager.getInstance().getCurrentUser();
+
     private int pos = 0;
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes) {
@@ -106,6 +108,11 @@ public class FixedExpense {
     public void setTotalPaid(double totalPaid){ this.totalPaid = totalPaid; }
 
     public void setLastPayment(Date lastPayment) { this.lastPayment = lastPayment; }
+
+    public void addPayment(double amount){
+        totalPaid += amount;
+        addNewHist();
+    }
 
     public void addNewHist(){
         paymentHist.add(totalPaid);

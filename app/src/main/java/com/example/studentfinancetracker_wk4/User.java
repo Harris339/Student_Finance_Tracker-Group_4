@@ -13,12 +13,15 @@ public class User {
     private ExpenseList expenseList;
     private SavingsList savingsList;
 
+    private SmartPercentageDivider percDivider;
+
     public User(String email, String password){
         this.email = email;
         this.password = password;
         balance = 0.0;
         this.expenseList = new ExpenseList();
         this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
 
         FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
 
@@ -41,13 +44,17 @@ public class User {
         laptop.addContribution(250.00);
         laptop.addContribution(100.00);
         savingsList.addGoal(laptop);
+
+
     }
 
     public User(){
         email = "";
         balance = 0.0;
         password = "";
+        this.expenseList = new ExpenseList();
         this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
     }
 
     public String getPassword() {
@@ -77,4 +84,6 @@ public class User {
 
     public ExpenseList getExpenseList(){ return expenseList; }
     public SavingsList getSavingsList(){ return savingsList; }
+
+    public SmartPercentageDivider getPercDivider(){ return percDivider; }
 }

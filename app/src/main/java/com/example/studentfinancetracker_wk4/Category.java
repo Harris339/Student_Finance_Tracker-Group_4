@@ -48,6 +48,12 @@ public class Category {
         this.balance = balance;
     }
 
+    public double deductFromBalance(double amount){
+        if (amount > balance) return -1;
+        balance -= amount;
+        return amount;
+    }
+
     @Override
     public String toString(){
         return "Category: " + category + "\n" +

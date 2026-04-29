@@ -28,6 +28,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.util.TypedValue;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,6 +43,7 @@ public class TrackersActivity extends AppCompatActivity {
     User currentUser;
     ExpenseList expenseList;
     SavingsList savingsList;
+    SmartPercentageDivider percDivider;
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
@@ -61,6 +63,7 @@ public class TrackersActivity extends AppCompatActivity {
         }
         expenseList = currentUser.getExpenseList();
         savingsList = currentUser.getSavingsList();
+        percDivider = currentUser.getPercDivider();
 
         for (FixedExpense expense : expenseList.getAllExpenses()) {
             if ("Subscriptions".equals(expense.getCategory())) addSubscriptionBox(expense);
@@ -76,8 +79,6 @@ public class TrackersActivity extends AppCompatActivity {
 
         setupFilterBar();
     }
-
-    // ─── Filter bar ─────────────────────────────────────────────────────────────
 
     private TextView activeFilter;
 
@@ -163,8 +164,6 @@ public class TrackersActivity extends AppCompatActivity {
                 TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics()));
     }
 
-    // ─── Add choice dialog ──────────────────────────────────────────────────────
-
     private void showAddChoiceDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_choice, null);
 
@@ -190,8 +189,6 @@ public class TrackersActivity extends AppCompatActivity {
             showAddSavingsDialog();
         });
     }
-
-    // ─── Add expense/subscription dialog ───────────────────────────────────────
 
     private void showAddExpenseDialog(boolean isSubscription) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_expense, null);
@@ -221,8 +218,19 @@ public class TrackersActivity extends AppCompatActivity {
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
         });
 
-        ArrayAdapter<CharSequence> catAdapter = ArrayAdapter.createFromResource(
-                this, R.array.expense_categories, R.layout.spinner_item_white);
+        List<String> categoryNames = new ArrayList<>();
+
+        for(Category c : percDivider.getAllDividers()) {
+            categoryNames.add(c.getCategory());
+        }
+
+        if(categoryNames.isEmpty()){
+            categoryNames.add("No categories yet");
+        }
+
+        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(
+                this, R.layout.spinner_item_white, categoryNames
+        );
         catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
         spCategory.setAdapter(catAdapter);
         spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));

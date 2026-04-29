@@ -32,7 +32,8 @@ public class ChartActivity extends AppCompatActivity {
     Button previousBtn, nextBtn, backBtn, editBtn, addBtn;
     TextView tvMonthLabel;
     WebView barChartView, pieChartView, lineChartView;
-    SmartPercentageDivider divider = new SmartPercentageDivider();
+    User user = SessionManager.getInstance().getCurrentUser();
+    SmartPercentageDivider divider = user.getPercDivider();
     LinearLayout categoryContainer;
 
     // Negative = past months, 0 = current month
