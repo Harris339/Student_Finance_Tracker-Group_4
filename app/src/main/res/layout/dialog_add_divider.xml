@@ -1,26 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="20dp"
+    android:background="#2A2A2C"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
+    <TextView
+        android:text="Add Category"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:text="Category"
+        android:textColor="#AAAAAA"
+        android:textSize="12sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"/>
 
     <Spinner
         android:id="@+id/spCategory"
         android:layout_width="match_parent"
-        android:layout_height="48dp"/>
+        android:layout_height="48dp"
+        android:popupBackground="#2A2A2C"/>
+
+    <TextView
+        android:text="Percentage (%)"
+        android:textColor="#AAAAAA"
+        android:textSize="12sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="6dp"/>
 
     <EditText
         android:id="@+id/etPercent"
-        android:hint="Percentage"
+        android:hint="e.g. 30"
         android:inputType="numberDecimal"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="8dp"/>
+        android:textColor="#FFFFFF"
+        android:textColorHint="#888888"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"/>
 
     <Button
         android:id="@+id/btnAdd"
-        android:text="Add"
+        android:text="Add Category"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"/>
+        android:layout_marginTop="20dp"
+        android:backgroundTint="#534AB7"
+        android:textColor="#FFFFFF"/>
+
 </LinearLayout>

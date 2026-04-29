@@ -12,6 +12,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
         bottomNav.setItemActiveIndicatorColor(
                 ColorStateList.valueOf(Color.parseColor("#4DB6AC")));
 
+        loadUserData();
+
         bottomNav.setOnItemSelectedListener(item -> {
             Fragment selected;
             int id = item.getItemId();
@@ -70,5 +79,41 @@ public class MainActivity extends AppCompatActivity {
             activeFragment = selected;
             return true;
         });
+    }
+
+    private void loadUserData() {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("users").document(firebaseUser.getUid())
+                .collection("data").document("categories")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+
+                    List<Map<String, Object>> items =
+                            (List<Map<String, Object>>) doc.get("items");
+                    if (items == null) return;
+
+                    User user = SessionManager.getInstance().getCurrentUser();
+                    if (user == null) return;
+
+                    List<Category> categories = new ArrayList<>();
+                    for (Map<String, Object> item : items) {
+                        String name = (String) item.get("name");
+                        double percentage  = ((Number) item.get("percentage")).doubleValue();
+                        double balance     = ((Number) item.get("balance")).doubleValue();
+                        double lastAlloc   = ((Number) item.get("lastAllocation")).doubleValue();
+                        Category c = new Category(name, percentage);
+                        c.setBalance(balance);
+                        c.setLastAllocation(lastAlloc);
+                        categories.add(c);
+                    }
+
+                    user.getPercDivider().setAllDividers(categories);
+                    homeFragment.refreshPools();
+                    chartsFragment.refreshData();
+                });
     }
 }

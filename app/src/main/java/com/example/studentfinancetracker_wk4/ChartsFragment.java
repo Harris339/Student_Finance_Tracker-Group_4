@@ -106,19 +106,29 @@ public class ChartsFragment extends Fragment {
                 LinearLayout row = new LinearLayout(requireContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setPadding(0, 8, 0, 8);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
                 Spinner spinner = new Spinner(requireContext());
+                LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 2);
+                spinner.setLayoutParams(spinnerParams);
+                spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#2A2A2C")));
                 ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                        requireContext(), R.array.expense_categories, android.R.layout.simple_spinner_item);
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                        requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
+                adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
                 spinner.setAdapter(adapter);
                 spinner.setSelection(adapter.getPosition(c.getCategory()));
 
                 EditText percent = new EditText(requireContext());
-                percent.setLayoutParams(new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                LinearLayout.LayoutParams percentParams = new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                percentParams.setMarginStart(8);
+                percent.setLayoutParams(percentParams);
                 percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.valueOf(c.getPercentage()));
+                percent.setText(String.format(java.util.Locale.US, "%.1f", c.getPercentage()));
+                percent.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+                percent.setHintTextColor(android.graphics.Color.parseColor("#888888"));
+                percent.setHint("%");
 
                 row.addView(spinner);
                 row.addView(percent);
@@ -126,17 +136,17 @@ public class ChartsFragment extends Fragment {
             }
 
             AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                    .setTitle("Edit Categories")
                     .setView(editView)
                     .create();
 
             btnSave.setOnClickListener(v2 -> {
 
                 FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-                assert firebaseUser != null;
+                if (firebaseUser == null) return;
                 String uid = firebaseUser.getUid();
 
                 int childCount = editContainer.getChildCount();
+                List<Category> existing = divider.getAllDividers();
                 List<Category> updated = new java.util.ArrayList<>();
 
                 for (int i = 0; i < childCount; i++) {
@@ -152,6 +162,12 @@ public class ChartsFragment extends Fragment {
                     }
 
                     double value = Double.parseDouble(valueStr);
+                    Category updated_c = new Category(category, value);
+                    if (i < existing.size()) {
+                        updated_c.setBalance(existing.get(i).getBalance());
+                        updated_c.setLastAllocation(existing.get(i).getLastAllocation());
+                    }
+                    updated.add(updated_c);
 
                     Map<String, Object> update = new HashMap<>();
                     update.put("percentage", value);
@@ -161,11 +177,11 @@ public class ChartsFragment extends Fragment {
                             .collection("percDividers")
                             .document(category)
                             .update(update);
-
-                    updated.add(new Category(category, value));
                 }
 
                 divider.setAllDividers(updated);
+                IncomeActivity.saveCategories(divider);
+                renderCategories();
                 loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
@@ -181,14 +197,13 @@ public class ChartsFragment extends Fragment {
             EditText etPercent = addView.findViewById(R.id.etPercent);
 
             ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                    requireContext(), R.array.expense_categories, android.R.layout.simple_spinner_item);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
+            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
             spCategory.setAdapter(adapter);
 
             Button btnAdd = addView.findViewById(R.id.btnAdd);
 
             AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                    .setTitle("Add Category")
                     .setView(addView)
                     .create();
 
@@ -237,6 +252,8 @@ public class ChartsFragment extends Fragment {
                         .set(category);
 
                 divider.addDivider(name, percent);
+                IncomeActivity.saveCategories(divider);
+                renderCategories();
                 loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
@@ -285,7 +302,21 @@ public class ChartsFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (divider != null) renderCategories();
+        refreshData();
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden) refreshData();
+    }
+
+    public void refreshData() {
+        if (divider == null) {
+            User u = SessionManager.getInstance().getCurrentUser();
+            if (u != null) divider = u.getPercDivider();
+        }
+        if (divider != null && categoryContainer != null) renderCategories();
         loadChartData();
     }
 
@@ -298,6 +329,7 @@ public class ChartsFragment extends Fragment {
                     + " | Balance: €" + String.format("%.2f", c.getBalance())
                     + " | Last: €" + String.format("%.2f", c.getLastAllocation()));
             tv.setTextSize(16);
+            tv.setTextColor(android.graphics.Color.parseColor("#DDDDDD"));
             tv.setPadding(8, 8, 8, 8);
             categoryContainer.addView(tv);
         }
@@ -307,7 +339,7 @@ public class ChartsFragment extends Fragment {
         WebSettings s = wv.getSettings();
         s.setJavaScriptEnabled(true);
         wv.setWebViewClient(new WebViewClient());
-        wv.setBackgroundColor(0x00000000);
+        wv.setBackgroundColor(android.graphics.Color.TRANSPARENT);
     }
 
     private void loadChartData() {
@@ -393,6 +425,12 @@ public class ChartsFragment extends Fragment {
                             toJsArray(incomeByWeek), toJsArray(expenseByWeek));
                     loadPieChart(pieChartView, pie);
                     loadLineChart(lineChartView, weekLabels.toString(), toJsArray(incomeByWeekLine));
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded() && tvMonthLabel != null)
+                        Toast.makeText(requireContext(),
+                                "Failed to load chart data: " + e.getMessage(),
+                                Toast.LENGTH_LONG).show();
                 });
     }
 
