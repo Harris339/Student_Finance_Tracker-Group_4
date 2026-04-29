@@ -11,6 +11,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,7 +42,7 @@ public class HomeFragment extends Fragment {
             tvUserEmail.setText(currentUser.getEmail());
         }
 
-        renderPools(view, currentUser);
+        loadPoolsFromFirebase(view);
 
         Button btnQuickIncome = view.findViewById(R.id.btnQuickIncome);
         Button btnQuickExpense = view.findViewById(R.id.btnQuickExpense);
@@ -64,8 +67,45 @@ public class HomeFragment extends Fragment {
         super.onResume();
         View view = getView();
         if (view != null) {
-            renderPools(view, SessionManager.getInstance().getCurrentUser());
+            loadPoolsFromFirebase(view);
         }
+    }
+
+    private void loadPoolsFromFirebase(View view) {
+
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(firebaseUser.getUid())
+                .collection("percDividers")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+
+                    List<Category> list = new java.util.ArrayList<>();
+
+                    for (QueryDocumentSnapshot doc : snapshot) {
+                        String name = doc.getId();
+                        Double percent = doc.getDouble("percentage");
+                        Double balance = doc.getDouble("balance");
+
+                        if (percent == null) percent = 0.0;
+                        if (balance == null) balance = 0.0;
+
+                        Category c = new Category(name, percent);
+                        c.setBalance(balance);
+
+                        list.add(c);
+                    }
+
+                    User user = SessionManager.getInstance().getCurrentUser();
+                    if (user != null) {
+                        user.getPercDivider().setAllDividers(list);
+                    }
+
+                    renderPools(view, user);
+                });
     }
 
     private void renderPools(View view, User currentUser) {

@@ -131,6 +131,11 @@ public class ChartsFragment extends Fragment {
                     .create();
 
             btnSave.setOnClickListener(v2 -> {
+
+                FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+                assert firebaseUser != null;
+                String uid = firebaseUser.getUid();
+
                 int childCount = editContainer.getChildCount();
                 List<Category> updated = new java.util.ArrayList<>();
 
@@ -147,6 +152,16 @@ public class ChartsFragment extends Fragment {
                     }
 
                     double value = Double.parseDouble(valueStr);
+
+                    Map<String, Object> update = new HashMap<>();
+                    update.put("percentage", value);
+
+                    db.collection("users")
+                            .document(uid)
+                            .collection("percDividers")
+                            .document(category)
+                            .update(update);
+
                     updated.add(new Category(category, value));
                 }
 
@@ -233,7 +248,6 @@ public class ChartsFragment extends Fragment {
 
     private void loadDividerFromFirebase() {
 
-        // ✅ FIX: correct UID source
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
