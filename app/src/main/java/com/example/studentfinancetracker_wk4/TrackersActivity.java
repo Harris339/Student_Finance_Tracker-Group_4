@@ -398,6 +398,7 @@ public class TrackersActivity extends AppCompatActivity {
 
         if (index >= 0) container.addView(box, index);
         else container.addView(box);
+        updateEmptyState(container, R.id.emptySavings);
     }
 
     private void refreshSavingsCard(SavingsGoal goal,
@@ -510,6 +511,7 @@ public class TrackersActivity extends AppCompatActivity {
             btnConfirmDelete.setOnClickListener(ev -> {
                 savingsList.removeGoal(goal);
                 container.removeView(box);
+                updateEmptyState(container, R.id.emptySavings);
                 delDialog.dismiss();
                 dialog.dismiss();
             });
@@ -753,6 +755,7 @@ public class TrackersActivity extends AppCompatActivity {
                 btnDelete.setOnClickListener(e -> {
                     expenseList.removeExpense(expense);
                     container.removeView(box);
+                    updateEmptyState(container, R.id.emptyExpenses);
                     delDialog.dismiss();
                     dialog.dismiss();
                 });
@@ -761,6 +764,7 @@ public class TrackersActivity extends AppCompatActivity {
 
         if (index >= 0) container.addView(box, index);
         else container.addView(box);
+        updateEmptyState(container, R.id.emptyExpenses);
     }
 
     // ─── Subscription box ───────────────────────────────────────────────────────
@@ -939,6 +943,7 @@ public class TrackersActivity extends AppCompatActivity {
                 btnDelete.setOnClickListener(e -> {
                     expenseList.removeExpense(expense);
                     container.removeView(box);
+                    updateEmptyState(container, R.id.emptySubscriptions);
                     delDialog.dismiss();
                     dialog.dismiss();
                 });
@@ -947,6 +952,7 @@ public class TrackersActivity extends AppCompatActivity {
 
         if (index >= 0) container.addView(box, index);
         else container.addView(box);
+        updateEmptyState(container, R.id.emptySubscriptions);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -970,6 +976,11 @@ public class TrackersActivity extends AppCompatActivity {
             tv.setText(String.valueOf(days));
             tv.setTextColor(Color.WHITE);
         }
+    }
+
+    private void updateEmptyState(LinearLayout container, int emptyViewId) {
+        View empty = findViewById(emptyViewId);
+        if (empty != null) empty.setVisibility(container.getChildCount() == 0 ? View.VISIBLE : View.GONE);
     }
 
     private void setNotesText(TextView tv, String notes) {
