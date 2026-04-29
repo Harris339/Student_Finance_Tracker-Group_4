@@ -649,6 +649,7 @@ public class TrackersActivity extends AppCompatActivity {
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            recordTransaction(expense.getCategory(), amountToPay);
         });
 
         btnMenu.setOnClickListener(ve -> {
@@ -1034,14 +1035,29 @@ public class TrackersActivity extends AppCompatActivity {
 
     private void recordTransaction(String category, double amount) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            FirebaseFirestore db = FirebaseFirestore.getInstance();
-            Map<String, Object> tx = new HashMap<>();
-            tx.put("amount", amount);
-            tx.put("type", "Expense");
-            tx.put("category", category);
-            tx.put("createdAt", new Date());
-            db.collection("users").document(user.getUid()).collection("transactions").add(tx);
+
+        if (user == null) {
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Map<String, Object> tx = new HashMap<>();
+        tx.put("amount", amount);
+        tx.put("type", "Expense");
+        tx.put("category", category);
+        tx.put("createdAt", new Date());
+
+        db.collection("users")
+                .document(user.getUid())
+                .collection("transactions")
+                .add(tx)
+                .addOnSuccessListener(doc ->
+                        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
     }
 }

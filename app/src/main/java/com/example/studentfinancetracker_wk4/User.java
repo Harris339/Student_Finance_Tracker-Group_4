@@ -23,6 +23,9 @@ public class User {
         this.savingsList = new SavingsList();
         this.percDivider = new SmartPercentageDivider();
 
+        Category c = new Category("Food", 0.5);
+        percDivider.addDivider(c);
+
         FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
 
         Calendar cal = Calendar.getInstance();

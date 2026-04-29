@@ -212,7 +212,7 @@ public class ExpensesActivity extends AppCompatActivity {
                 }
             }
             recordTransaction(tvCategory.getText().toString(), amountToPay);
-            expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
+            expense.addPayment(amountToPay);
             expense.addNewHist();
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
@@ -541,8 +541,6 @@ public class ExpensesActivity extends AppCompatActivity {
         if (index >= 0) container.addView(box, index);
         else container.addView(box);
     }
-
-    // ─── Helpers ────────────────────────────────────────────────────────────────
 
     private void setDaysText(TextView tv, int days) {
         if (days == 0) {

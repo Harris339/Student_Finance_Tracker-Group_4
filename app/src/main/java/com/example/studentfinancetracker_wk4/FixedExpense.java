@@ -19,10 +19,10 @@ public class FixedExpense {
 
     private List<Double> paymentHist;
     private List<Date> paymentDates;
-
-    User user = SessionManager.getInstance().getCurrentUser();
+    private Category categoryObj;
 
     private int pos = 0;
+
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes) {
         this.category = category;
@@ -36,6 +36,18 @@ public class FixedExpense {
         this.paymentDates = new ArrayList<>();
         paymentHist.add(totalPaid);
         paymentDates.add(null);
+
+        User currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            SmartPercentageDivider divider = currentUser.getPercDivider();
+            if (divider != null) {
+                for (Category c : divider.getAllDividers()) {
+                    if (c.getCategory().equals(category)) {
+                        categoryObj = c;
+                    }
+                }
+            }
+        }
     }
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes, double totalPaid) {
@@ -112,6 +124,7 @@ public class FixedExpense {
     public void addPayment(double amount){
         totalPaid += amount;
         addNewHist();
+        if (categoryObj != null) categoryObj.deductFromBalance(amount);
     }
 
     public void addNewHist(){
