@@ -18,6 +18,11 @@ public class SmartPercentageDivider {
         return divisions;
     }
 
+    public void setAllDividers(List<Category> newDivisions) {
+        divisions.clear();
+        divisions.addAll(newDivisions);
+    }
+
     public double getTotalPercentage() {
         double total = 0;
         for (Category division : divisions) {
@@ -69,7 +74,7 @@ public class SmartPercentageDivider {
             double allocation = (c.getPercentage() / 100) * income;
 
             c.setLastAllocation(allocation);
-            c.setTotalAllocatedToDate(allocation);
+            c.setBalance(c.getBalance() + allocation);
         }
     }
 

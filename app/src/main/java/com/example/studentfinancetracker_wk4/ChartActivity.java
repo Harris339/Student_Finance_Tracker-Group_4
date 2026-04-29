@@ -1,12 +1,19 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.os.Bundle;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -17,13 +24,16 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ChartActivity extends AppCompatActivity {
 
-    Button previousBtn, nextBtn, backBtn;
+    Button previousBtn, nextBtn, backBtn, editBtn, addBtn;
     TextView tvMonthLabel;
     WebView barChartView, pieChartView, lineChartView;
+    SmartPercentageDivider divider = new SmartPercentageDivider();
+    LinearLayout categoryContainer;
 
     // Negative = past months, 0 = current month
     int currentOffset = 0;
@@ -37,10 +47,13 @@ public class ChartActivity extends AppCompatActivity {
         previousBtn   = (Button)   findViewById(R.id.previousBtn);
         nextBtn       = (Button)   findViewById(R.id.nextBtn);
         backBtn       = (Button)   findViewById(R.id.backBtn);
+        editBtn       = (Button)   findViewById(R.id.btnEditAll);
+        addBtn        = (Button)   findViewById(R.id.btnAddCategory);
         tvMonthLabel  = (TextView) findViewById(R.id.tvMonthLabel);
         barChartView  = (WebView)  findViewById(R.id.barChartView);
         pieChartView  = (WebView)  findViewById(R.id.pieChartView);
         lineChartView = (WebView)  findViewById(R.id.lineChartView);
+        categoryContainer = findViewById(R.id.categoryContainer);
 
         setupWebView(barChartView);
         setupWebView(pieChartView);
@@ -60,7 +73,173 @@ public class ChartActivity extends AppCompatActivity {
             }
         });
 
-        backBtn.setOnClickListener(v -> finish());
+        editBtn.setOnClickListener(v -> {
+
+            View editView = getLayoutInflater().inflate(R.layout.dialog_edit_divider, null);
+
+            LinearLayout editContainer = editView.findViewById(R.id.editContainer);
+            Button btnSave = editView.findViewById(R.id.btnSave);
+
+            for (Category c : divider.getAllDividers()) {
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setPadding(0, 8, 0, 8);
+
+                Spinner spinner = new Spinner(this);
+
+                ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                        this,
+                        R.array.expense_categories,
+                        android.R.layout.simple_spinner_item
+                );
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinner.setAdapter(adapter);
+
+
+                int position = adapter.getPosition(c.getCategory());
+                spinner.setSelection(position);
+
+                EditText percent = new EditText(this);
+                percent.setLayoutParams(new LinearLayout.LayoutParams(0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                percent.setText(String.valueOf(c.getPercentage()));
+
+                row.addView(spinner);
+                row.addView(percent);
+
+                editContainer.addView(row);
+            }
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Edit Categories")
+                    .setView(editView)
+                    .create();
+
+            btnSave.setOnClickListener(v2 -> {
+
+                int childCount = editContainer.getChildCount();
+                List<Category> updated = new java.util.ArrayList<>();
+
+                for (int i = 0; i < childCount; i++) {
+
+                    LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
+
+                    Spinner spinner = (Spinner) row.getChildAt(0);
+                    EditText percent = (EditText) row.getChildAt(1);
+
+                    String category = spinner.getSelectedItem().toString();
+
+                    String valueStr = percent.getText().toString().trim();
+                    if (valueStr.isEmpty()) {
+                        Toast.makeText(this, "Fill all percentages", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    double value = Double.parseDouble(valueStr);
+
+                    updated.add(new Category(category, value));
+                }
+
+                divider.setAllDividers(updated);
+
+                renderCategories();
+                Toast.makeText(this, "Updated", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+
+            dialog.show();
+        });
+
+        addBtn.setOnClickListener(v -> {
+
+            View addView = getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
+
+            Spinner spCategory = addView.findViewById(R.id.spCategory);
+            EditText etPercent = addView.findViewById(R.id.etPercent);
+
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                    this,
+                    R.array.expense_categories,
+                    android.R.layout.simple_spinner_item
+            );
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spCategory.setAdapter(adapter);
+            Button btnAdd = addView.findViewById(R.id.btnAdd);
+
+            AlertDialog dialog = new AlertDialog.Builder(this)
+                    .setTitle("Add Category")
+                    .setView(addView)
+                    .create();
+
+            btnAdd.setOnClickListener(v2 -> {
+
+                String name = spCategory.getSelectedItem().toString();
+                String percentStr = etPercent.getText().toString().trim();
+
+                if (name.isEmpty() || percentStr.isEmpty()) {
+                    Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                double percent;
+                try {
+                    percent = Double.parseDouble(percentStr);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Invalid percentage", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (percent <= 0 || percent > 100) {
+                    Toast.makeText(this, "Enter 1–100%", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (percent > 0 && percent < 100 && divider.getAllDividers().isEmpty()) {
+                    double remaining = 100 - percent;
+                    String otherName = "Other";
+                    divider.addDivider(otherName, remaining);
+                }
+
+                for (Category c : divider.getAllDividers()) {
+                    if (c.getCategory().equals(name)) {
+                        Toast.makeText(this, "Category already exists", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+
+                divider.addDivider(name, percent);
+
+                renderCategories();
+
+                Toast.makeText(this, "Category Added", Toast.LENGTH_SHORT).show();
+
+                dialog.dismiss();
+            });
+
+            dialog.show();
+        });
+    }
+
+    private void renderCategories() {
+        categoryContainer.removeAllViews();
+
+        for (Category c : divider.getAllDividers()) {
+
+            TextView tv = new TextView(this);
+            tv.setText(
+                    c.getCategory() + " - "
+                            + String.format("%.0f%%", c.getPercentage()) +
+                            " | Balance: €" + String.format("%.2f", c.getBalance()) +
+                            " | Last: €" + String.format("%.2f", c.getLastAllocation())
+            );
+
+            tv.setTextSize(16);
+            tv.setPadding(8, 8, 8, 8);
+
+            categoryContainer.addView(tv);
+        }
     }
 
     private void setupWebView(WebView wv) {
