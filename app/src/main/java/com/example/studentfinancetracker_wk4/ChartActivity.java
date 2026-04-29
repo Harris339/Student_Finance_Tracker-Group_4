@@ -1,136 +1,237 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.os.Bundle;
-import android.view.View;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
 public class ChartActivity extends AppCompatActivity {
 
-    Button previousBtn, nextBtn, btnEditAll, btnAddCategory;;
-    LinearLayout container;
+    Button previousBtn, nextBtn;
+    TextView tvMonthLabel;
+    WebView barChartView, pieChartView, lineChartView;
 
-    SmartPercentageDivider divider;
+    // Negative = past months, 0 = current month
+    int currentOffset = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chart);
 
-
-        container = findViewById(R.id.categoryContainer);
-        btnEditAll = findViewById(R.id.btnEditAll);
-        btnAddCategory = findViewById(R.id.btnAddCategory);
         previousBtn = findViewById(R.id.previousBtn);
         nextBtn = findViewById(R.id.nextBtn);
+        tvMonthLabel = findViewById(R.id.tvMonthLabel);
+        barChartView = findViewById(R.id.barChartView);
+        pieChartView = findViewById(R.id.pieChartView);
+        lineChartView = findViewById(R.id.lineChartView);
 
-        btnEditAll.setOnClickListener(v -> showEditAllDialog());
-        btnAddCategory.setOnClickListener(v -> showAddDividerDialog());
+        setupWebView(barChartView);
+        setupWebView(pieChartView);
+        setupWebView(lineChartView);
 
-        divider = new SmartPercentageDivider();
+        loadChartData();
 
-        renderCategories(divider);
-    }
-
-    public void renderCategories(SmartPercentageDivider divider) {
-        container.removeAllViews();
-
-        for (Category c : divider.getAllDividers()) {
-            View row = getLayoutInflater().inflate(R.layout.divider_item, container, false);
-
-            TextView name = row.findViewById(R.id.tvCategoryName);
-            TextView percent = row.findViewById(R.id.tvPercentage);
-            TextView last = row.findViewById(R.id.tvLastAllocation);
-            TextView total = row.findViewById(R.id.tvTotalAllocated);
-
-            name.setText(c.getCategory());
-            percent.setText(String.format("%.0f%%", c.getPercentage()));
-            last.setText(String.format("Last: €%.2f", c.getLastAllocation()));
-            total.setText(String.format("Total: €%.2f", c.getTotalAllocatedToDate()));
-
-            container.addView(row);
-        }
-    }
-
-    private void showEditAllDialog() {
-        View view = getLayoutInflater().inflate(R.layout.dialog_edit_divider, null);
-        LinearLayout editContainer = view.findViewById(R.id.editContainer);
-        Button btnSave = view.findViewById(R.id.btnSave);
-
-        java.util.List<EditText> inputs = new java.util.ArrayList<>();
-
-        for (Category c : divider.getAllDividers()) {
-            View row = getLayoutInflater().inflate(R.layout.edit_percentage_item, editContainer, false);
-
-            TextView name = row.findViewById(R.id.tvName);
-            EditText percent = row.findViewById(R.id.etPercent);
-
-            name.setText(c.getCategory());
-            percent.setText(String.valueOf(c.getPercentage()));
-
-            inputs.add(percent);
-            editContainer.addView(row);
-        }
-
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setView(view)
-                .create();
-
-        btnSave.setOnClickListener(v -> {
-            java.util.List<Double> newValues = new java.util.ArrayList<>();
-
-            for (EditText et : inputs) {
-                String val = et.getText().toString();
-                if (val.isEmpty()) return;
-
-                newValues.add(Double.parseDouble(val));
-            }
-
-            if (!divider.updateAllPercentages(newValues)) {
-                Toast.makeText(this, "Total must equal 100%", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            renderCategories(divider);
-            dialog.dismiss();
+        previousBtn.setOnClickListener(v -> {
+            currentOffset--;
+            loadChartData();
         });
 
-        dialog.show();
+        // FIX: nextBtn now correctly checks currentOffset < 0 before allowing forward navigation
+        nextBtn.setOnClickListener(v -> {
+            if (currentOffset < 0) {
+                currentOffset++;
+                loadChartData();
+            }
+        });
     }
 
-    private void showAddDividerDialog() {
-        View view = getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
+    private void setupWebView(WebView wv) {
+        WebSettings s = wv.getSettings();
+        s.setJavaScriptEnabled(true);
+        wv.setWebViewClient(new WebViewClient());
+        wv.setBackgroundColor(0x00000000);
+    }
 
-        EditText etName = view.findViewById(R.id.etName);
-        EditText etPercent = view.findViewById(R.id.etPercent);
-        Button btnAdd = view.findViewById(R.id.btnAdd);
+    private void loadChartData() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        cal.add(Calendar.MONTH, currentOffset);
+        Date monthStart = cal.getTime();
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setView(view)
-                .create();
+        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH));
+        cal.set(Calendar.HOUR_OF_DAY, 23);
+        cal.set(Calendar.MINUTE, 59);
+        cal.set(Calendar.SECOND, 59);
+        Date monthEnd = cal.getTime();
 
-        btnAdd.setOnClickListener(v -> {
-            String name = etName.getText().toString().trim();
-            String percentStr = etPercent.getText().toString().trim();
+        SimpleDateFormat fmt = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+        tvMonthLabel.setText(fmt.format(monthStart));
 
-            if (name.isEmpty() || percentStr.isEmpty()) {
-                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        // FIX: Update button states correctly — Next is only enabled when viewing a past month
+        nextBtn.setEnabled(currentOffset < 0);
+        nextBtn.setAlpha(currentOffset < 0 ? 1f : 0.4f);
 
-            double percent = Double.parseDouble(percentStr);
+        int weeks = getWeeksInMonth(monthStart);
+        float[] incomeByWeek = new float[weeks];
+        float[] expenseByWeek = new float[weeks];
+        float[] incomeByWeekLine = new float[weeks];
 
-            divider.addDivider(name, percent);
+        // FIX: Removed dead variables rentTotal, subTotal, utilTotal, otherTotal.
+        // Only pie[] is needed for the chart.
+        float[] pie = {0f, 0f, 0f, 0f};
 
-            renderCategories(divider);
-            dialog.dismiss();
-        });
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
 
-        dialog.show();
+        FirebaseFirestore.getInstance()
+                .collection("users").document(user.getUid())
+                .collection("transactions")
+                .whereGreaterThanOrEqualTo("createdAt", monthStart)
+                .whereLessThanOrEqualTo("createdAt", monthEnd)
+                .get()
+                .addOnSuccessListener(snap -> {
+
+                    // FIX: Show empty state if no transactions exist for this month
+                    if (snap.isEmpty()) {
+                        loadBarChart(barChartView, "'Wk 1'", "[0]", "[0]");
+                        loadPieChart(pieChartView, new float[]{0, 0, 0, 0});
+                        loadLineChart(lineChartView, "'Wk 1'", "[0]");
+                        return;
+                    }
+
+                    for (QueryDocumentSnapshot doc : snap) {
+                        Date date = doc.getDate("createdAt");
+                        Double amt = doc.getDouble("amount");
+                        String type = doc.getString("type");
+                        String cat = doc.getString("category");
+                        if (date == null || amt == null || type == null) continue;
+
+                        int week = (int) ((date.getTime() - monthStart.getTime())
+                                / (7L * 24 * 60 * 60 * 1000));
+
+                        // FIX: Clamp week index so end-of-month transactions never go out of bounds
+                        week = Math.max(0, Math.min(week, weeks - 1));
+
+                        if ("Income".equals(type)) {
+                            incomeByWeek[week] += amt.floatValue();
+                            incomeByWeekLine[week] += amt.floatValue();
+                        }
+                        if ("Expense".equals(type)) {
+                            expenseByWeek[week] += amt.floatValue();
+                            if (cat != null) {
+                                if (cat.contains("Rent")) pie[0] += amt.floatValue();
+                                else if (cat.contains("Sub")) pie[1] += amt.floatValue();
+                                else if (cat.contains("Util")) pie[2] += amt.floatValue();
+                                else pie[3] += amt.floatValue();
+                            }
+                        }
+                    }
+
+                    // Build week labels
+                    StringBuilder weekLabels = new StringBuilder();
+                    for (int i = 0; i < weeks; i++) {
+                        if (i > 0) weekLabels.append(",");
+                        weekLabels.append("'Wk ").append(i + 1).append("'");
+                    }
+
+                    loadBarChart(barChartView, weekLabels.toString(),
+                            toJsArray(incomeByWeek), toJsArray(expenseByWeek));
+                    loadPieChart(pieChartView, pie);
+                    loadLineChart(lineChartView, weekLabels.toString(),
+                            toJsArray(incomeByWeekLine));
+                });
+    }
+
+    private void loadBarChart(WebView wv, String labels,
+                              String incomeData, String expenseData) {
+        String html = "<!DOCTYPE html><html><head>"
+                + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
+                + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;}</style>"
+                + "</head><body>"
+                + "<canvas id='c'></canvas><script>"
+                + "new Chart(document.getElementById('c'),{"
+                + "type:'bar',"
+                + "data:{labels:[" + labels + "],"
+                + "datasets:["
+                + "{label:'Income',data:" + incomeData + ",backgroundColor:'#1D9E75',borderRadius:6},"
+                + "{label:'Expenses',data:" + expenseData + ",backgroundColor:'#D85A30',borderRadius:6}"
+                + "]},"
+                + "options:{responsive:true,plugins:{legend:{labels:{color:'#fff'}}},"
+                + "scales:{x:{ticks:{color:'#fff'},grid:{color:'#333'}},"
+                + "y:{ticks:{color:'#fff'},grid:{color:'#333'}}}}});"
+                + "</script></body></html>";
+        wv.loadDataWithBaseURL("https://cdn.jsdelivr.net", html, "text/html", "UTF-8", null);
+    }
+
+    private void loadPieChart(WebView wv, float[] pie) {
+        String html = "<!DOCTYPE html><html><head>"
+                + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
+                + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;}</style>"
+                + "</head><body>"
+                + "<canvas id='c'></canvas><script>"
+                + "new Chart(document.getElementById('c'),{"
+                + "type:'doughnut',"
+                + "data:{labels:['Rent','Subscriptions','Utilities','Other'],"
+                + "datasets:[{data:[" + pie[0] + "," + pie[1] + "," + pie[2] + "," + pie[3] + "],"
+                + "backgroundColor:['#534AB7','#1D9E75','#D85A30','#BA7517'],"
+                + "borderWidth:0}]},"
+                + "options:{responsive:true,plugins:{legend:"
+                + "{position:'bottom',labels:{color:'#fff',padding:16}}}}});"
+                + "</script></body></html>";
+        wv.loadDataWithBaseURL("https://cdn.jsdelivr.net", html, "text/html", "UTF-8", null);
+    }
+
+    private void loadLineChart(WebView wv, String labels, String incomeData) {
+        String html = "<!DOCTYPE html><html><head>"
+                + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
+                + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;}</style>"
+                + "</head><body>"
+                + "<canvas id='c'></canvas><script>"
+                + "new Chart(document.getElementById('c'),{"
+                + "type:'line',"
+                + "data:{labels:[" + labels + "],"
+                + "datasets:[{label:'Income',data:" + incomeData + ","
+                + "borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.15)',"
+                + "pointBackgroundColor:'#1D9E75',tension:0.4,fill:true}]},"
+                + "options:{responsive:true,plugins:{legend:{labels:{color:'#fff'}}},"
+                + "scales:{x:{ticks:{color:'#fff'},grid:{color:'#333'}},"
+                + "y:{ticks:{color:'#fff'},grid:{color:'#333'}}}}});"
+                + "</script></body></html>";
+        wv.loadDataWithBaseURL("https://cdn.jsdelivr.net", html, "text/html", "UTF-8", null);
+    }
+
+    private String toJsArray(float[] data) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < data.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(String.format(Locale.US, "%.2f", data[i]));
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private int getWeeksInMonth(Date monthStart) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(monthStart);
+        return (int) Math.ceil(cal.getActualMaximum(Calendar.DAY_OF_MONTH) / 7.0);
     }
 }
