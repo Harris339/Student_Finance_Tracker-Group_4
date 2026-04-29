@@ -218,20 +218,7 @@ public class TrackersActivity extends AppCompatActivity {
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
         });
 
-        List<String> categoryNames = new ArrayList<>();
-
-        for(Category c : percDivider.getAllDividers()) {
-            categoryNames.add(c.getCategory());
-        }
-
-        if(categoryNames.isEmpty()){
-            categoryNames.add("No categories yet");
-        }
-
-        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(
-                this, R.layout.spinner_item_white, categoryNames
-        );
-        catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+        ArrayAdapter<String> catAdapter = buildCategoryAdapter();
         spCategory.setAdapter(catAdapter);
         spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
 
@@ -642,8 +629,7 @@ public class TrackersActivity extends AppCompatActivity {
                     return;
                 }
             }
-            expense.setTotalPaid(expense.getTotalPaid() + amountToPay);
-            expense.addNewHist();
+            expense.addPayment(amountToPay);
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
@@ -672,9 +658,7 @@ public class TrackersActivity extends AppCompatActivity {
             tvEditTitle.setText(expense.getTitle());
             tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
 
-            ArrayAdapter<CharSequence> catAdapter = ArrayAdapter.createFromResource(
-                    this, R.array.expense_categories, R.layout.spinner_item_white);
-            catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            ArrayAdapter<String> catAdapter = buildCategoryAdapter();
             spCategory.setAdapter(catAdapter);
             spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
             spCategory.setSelection(catAdapter.getPosition(expense.getCategory()));
@@ -857,9 +841,7 @@ public class TrackersActivity extends AppCompatActivity {
                 }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
             });
 
-            ArrayAdapter<CharSequence> catAdapter = ArrayAdapter.createFromResource(
-                    this, R.array.expense_categories, R.layout.spinner_item_white);
-            catAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            ArrayAdapter<String> catAdapter = buildCategoryAdapter();
             spCategory.setAdapter(catAdapter);
             spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
             spCategory.setSelection(catAdapter.getPosition(expense.getCategory()));
@@ -968,6 +950,17 @@ public class TrackersActivity extends AppCompatActivity {
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
+
+    private ArrayAdapter<String> buildCategoryAdapter() {
+        List<String> items = new ArrayList<>();
+        for (Category c : percDivider.getAllDividers()) {
+            items.add(c.getCategory());
+        }
+        items.add("Subscriptions");
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item_white, items);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+        return adapter;
+    }
 
     private void setDaysText(TextView tv, int days) {
         if (days == 0) {
