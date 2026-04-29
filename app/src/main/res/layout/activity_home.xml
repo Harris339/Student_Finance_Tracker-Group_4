@@ -30,7 +30,14 @@
         android:id="@+id/expenseBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Go to Expenses Page"
+        android:text="Go to Trackers"
+        android:layout_marginTop="12dp"/>
+
+    <Button
+        android:id="@+id/chartBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Go to Chart Page"
         android:layout_marginTop="12dp"/>
 
 </LinearLayout>

@@ -53,7 +53,7 @@
             android:exported="false"/>
 
         <activity
-            android:name=".ExpensesActivity"
+            android:name=".TrackersActivity"
             android:exported="false"/>
 
         <activity
