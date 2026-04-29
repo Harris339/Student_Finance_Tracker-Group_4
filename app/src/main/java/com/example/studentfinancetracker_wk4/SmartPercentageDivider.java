@@ -5,7 +5,6 @@ import java.util.List;
 
 public class SmartPercentageDivider {
     private List<Category> divisions;
-    User user = SessionManager.getInstance().getCurrentUser();
 
     public SmartPercentageDivider() {
         divisions = new ArrayList<>();
@@ -149,6 +148,8 @@ public class SmartPercentageDivider {
     }
 
     public void allocateIncome(double income) {
+        User user = SessionManager.getInstance().getCurrentUser();
+
         double otherAllocation = 0;
 
         if (getTotalAllocations() < user.getBalance()) {
