@@ -6,11 +6,13 @@ import java.util.Date;
 public class User {
 
     private String email;
+    private double balance;
     private String password;
     private ExpenseList expenseList;
     public User(String email, String password){
         this.email = email;
         this.password = password;
+        balance = 0.0;
         this.expenseList = new ExpenseList();
 
         FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
@@ -33,6 +35,7 @@ public class User {
 
     public User(){
         email = "";
+        balance = 0.0;
         password = "";
 
     }
@@ -52,6 +55,10 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+    public double getBalance(){return balance;}
+
+    public void setBalance(double balance){this.balance = balance;}
 
     public void addExpense(FixedExpense expense){
         expenseList.addExpense(expense);

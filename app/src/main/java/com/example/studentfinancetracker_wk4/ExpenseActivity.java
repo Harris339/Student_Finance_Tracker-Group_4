@@ -39,7 +39,7 @@ public class ExpenseActivity extends TransactionActivity {
             String amntStr = amountInput.getText().toString();
             double amount = Double.parseDouble(amntStr);
 
-            addExpense(category, amount);
+            addExpense(category, -amount);
             finish();
         });
 

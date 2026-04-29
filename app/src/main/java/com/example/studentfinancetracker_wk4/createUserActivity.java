@@ -49,6 +49,7 @@ public class createUserActivity extends AppCompatActivity {
         createButton.setOnClickListener(v ->{
             String email = emailInput.getText().toString();
             String password = passwordInput.getText().toString();
+            double balance = 0.0;
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
@@ -65,7 +66,8 @@ public class createUserActivity extends AppCompatActivity {
                                         if (!documentSnapshot.exists()) {
 
                                             Map<String, Object> userData = new HashMap<>();
-                                            userData.put("email", user.getEmail());
+                                            userData.put("Email", user.getEmail());
+                                            userData.put("Balance", balance);
                                             userData.put("createdAt", new Date());
 
                                             userRef.set(userData);
