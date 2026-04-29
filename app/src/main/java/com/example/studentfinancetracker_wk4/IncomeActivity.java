@@ -60,19 +60,11 @@ public class IncomeActivity extends TransactionActivity {
     }
 
     private void addIncome(String category, double amount) {
-        // Distribute income across pools
         User user = SessionManager.getInstance().getCurrentUser();
-        if (user != null) {
-            user.getPercDivider().allocateIncome(amount);
-            saveCategories(user.getPercDivider());
-        }
+        if (user == null) return;
 
-        SmartPercentageDivider divider =
-                SessionManager.getInstance().getCurrentUser().getPercDivider();
-
-        divider.allocateIncome(amount);
-
-        saveDivider(divider);
+        user.getPercDivider().allocateIncome(amount);
+        saveDivider(user.getPercDivider());
 
         transaction(category, amount, "Income");
         Toast.makeText(this, "Income added and pools updated", Toast.LENGTH_SHORT).show();
@@ -101,7 +93,7 @@ public class IncomeActivity extends TransactionActivity {
                 .set(doc);
     }
 
-    private void saveDivider(SmartPercentageDivider divider) {
+    static void saveDivider(SmartPercentageDivider divider) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
 

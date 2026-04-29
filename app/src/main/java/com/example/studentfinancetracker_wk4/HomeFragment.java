@@ -185,7 +185,7 @@ public class HomeFragment extends Fragment {
                 User user = SessionManager.getInstance().getCurrentUser();
                 if (user != null) {
                     user.getPercDivider().allocateIncome(amount);
-                    IncomeActivity.saveCategories(user.getPercDivider());
+                    IncomeActivity.saveDivider(user.getPercDivider());
                 }
             }
 
