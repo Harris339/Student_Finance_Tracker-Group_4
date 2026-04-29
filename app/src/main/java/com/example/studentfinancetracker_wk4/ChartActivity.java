@@ -73,6 +73,8 @@ public class ChartActivity extends AppCompatActivity {
             }
         });
 
+        backBtn.setOnClickListener(v -> finish());
+
         editBtn.setOnClickListener(v -> {
 
             View editView = getLayoutInflater().inflate(R.layout.dialog_edit_divider, null);
