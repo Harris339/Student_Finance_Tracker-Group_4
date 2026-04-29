@@ -182,7 +182,7 @@ public class ChartActivity extends AppCompatActivity {
     private void loadPieChart(WebView wv, float[] pie) {
         String html = "<!DOCTYPE html><html><head>"
                 + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
-                + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;}</style>"
+                + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;max-height:160px;}</style>"
                 + "</head><body>"
                 + "<canvas id='c'></canvas><script>"
                 + "new Chart(document.getElementById('c'),{"
