@@ -7,7 +7,7 @@
     android:fitsSystemWindows="true"
     android:background="#121212">
 
-    <!-- Header of page -->
+    <!-- Header -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerLayout"
         android:layout_width="0dp"
@@ -23,7 +23,6 @@
             android:layout_height="wrap_content"
             android:background="@drawable/baseline_arrow_back_ios_new_24"
             android:foreground="?attr/selectableItemBackgroundBorderless"
-
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -32,10 +31,9 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Fixed Expenses"
+            android:text="Trackers"
             android:textSize="24sp"
             android:textColor="#FFFFFF"
-
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/btnBack"
@@ -51,7 +49,6 @@
             android:background="@drawable/round_button"
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:clipToOutline="true"
-
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -71,10 +68,48 @@
         app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
-            android:id="@+id/expenseContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"/>
+            android:orientation="vertical">
+
+            <!-- Fixed Expenses section header -->
+            <TextView
+                android:id="@+id/tvExpensesHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fixed Expenses"
+                android:textColor="#BBFFFFFF"
+                android:textSize="13sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:id="@+id/expenseContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+            <!-- Savings Goals section header -->
+            <TextView
+                android:id="@+id/tvSavingsHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Savings Goals"
+                android:textColor="#4DB6AC"
+                android:textSize="13sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:id="@+id/savingsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+        </LinearLayout>
     </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

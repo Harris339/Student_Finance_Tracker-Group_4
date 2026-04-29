@@ -30,7 +30,7 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         expensesBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, ExpensesActivity.class);
+            Intent intent = new Intent(HomeActivity.this, TrackersActivity.class);
             startActivity(intent);
         });
 
