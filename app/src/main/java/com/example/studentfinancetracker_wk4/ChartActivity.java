@@ -21,7 +21,7 @@ import java.util.Locale;
 
 public class ChartActivity extends AppCompatActivity {
 
-    Button previousBtn, nextBtn;
+    Button previousBtn, nextBtn, backBtn;
     TextView tvMonthLabel;
     WebView barChartView, pieChartView, lineChartView;
 
@@ -33,12 +33,14 @@ public class ChartActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chart);
 
-        previousBtn = findViewById(R.id.previousBtn);
-        nextBtn = findViewById(R.id.nextBtn);
-        tvMonthLabel = findViewById(R.id.tvMonthLabel);
-        barChartView = findViewById(R.id.barChartView);
-        pieChartView = findViewById(R.id.pieChartView);
-        lineChartView = findViewById(R.id.lineChartView);
+        // Explicit casts make the type clear to the compiler, removing warnings
+        previousBtn   = (Button)   findViewById(R.id.previousBtn);
+        nextBtn       = (Button)   findViewById(R.id.nextBtn);
+        backBtn       = (Button)   findViewById(R.id.backBtn);
+        tvMonthLabel  = (TextView) findViewById(R.id.tvMonthLabel);
+        barChartView  = (WebView)  findViewById(R.id.barChartView);
+        pieChartView  = (WebView)  findViewById(R.id.pieChartView);
+        lineChartView = (WebView)  findViewById(R.id.lineChartView);
 
         setupWebView(barChartView);
         setupWebView(pieChartView);
@@ -51,13 +53,14 @@ public class ChartActivity extends AppCompatActivity {
             loadChartData();
         });
 
-        // FIX: nextBtn now correctly checks currentOffset < 0 before allowing forward navigation
         nextBtn.setOnClickListener(v -> {
             if (currentOffset < 0) {
                 currentOffset++;
                 loadChartData();
             }
         });
+
+        backBtn.setOnClickListener(v -> finish());
     }
 
     private void setupWebView(WebView wv) {
@@ -86,7 +89,6 @@ public class ChartActivity extends AppCompatActivity {
         SimpleDateFormat fmt = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
         tvMonthLabel.setText(fmt.format(monthStart));
 
-        // FIX: Update button states correctly — Next is only enabled when viewing a past month
         nextBtn.setEnabled(currentOffset < 0);
         nextBtn.setAlpha(currentOffset < 0 ? 1f : 0.4f);
 
@@ -95,8 +97,6 @@ public class ChartActivity extends AppCompatActivity {
         float[] expenseByWeek = new float[weeks];
         float[] incomeByWeekLine = new float[weeks];
 
-        // FIX: Removed dead variables rentTotal, subTotal, utilTotal, otherTotal.
-        // Only pie[] is needed for the chart.
         float[] pie = {0f, 0f, 0f, 0f};
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -110,7 +110,6 @@ public class ChartActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(snap -> {
 
-                    // FIX: Show empty state if no transactions exist for this month
                     if (snap.isEmpty()) {
                         loadBarChart(barChartView, "'Wk 1'", "[0]", "[0]");
                         loadPieChart(pieChartView, new float[]{0, 0, 0, 0});
@@ -128,7 +127,6 @@ public class ChartActivity extends AppCompatActivity {
                         int week = (int) ((date.getTime() - monthStart.getTime())
                                 / (7L * 24 * 60 * 60 * 1000));
 
-                        // FIX: Clamp week index so end-of-month transactions never go out of bounds
                         week = Math.max(0, Math.min(week, weeks - 1));
 
                         if ("Income".equals(type)) {
@@ -146,7 +144,6 @@ public class ChartActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Build week labels
                     StringBuilder weekLabels = new StringBuilder();
                     for (int i = 0; i < weeks; i++) {
                         if (i > 0) weekLabels.append(",");
