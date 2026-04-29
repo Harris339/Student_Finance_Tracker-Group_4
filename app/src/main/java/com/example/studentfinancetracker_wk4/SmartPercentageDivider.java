@@ -49,6 +49,26 @@ public class SmartPercentageDivider {
         divisions.add(new Category(name, newPercent));
     }
 
+    public void addDivider(Category c) {
+        String name = c.getCategory();
+        double newPercent = c.getPercentage();
+        if (newPercent >= 100) {
+            divisions.clear();
+            divisions.add(new Category(name, 100));
+            return;
+        }
+
+        double remaining = 100 - newPercent;
+        double currentTotal = getTotalPercentage();
+
+        for (Category cat : divisions) {
+            double adjusted = (c.getPercentage() / currentTotal) * remaining;
+            cat.setPercentage(adjusted);
+        }
+
+        divisions.add(new Category(name, newPercent));
+    }
+
     public boolean updateAllPercentages(List<Double> newPercentages) {
         if (newPercentages.size() != divisions.size()) {
             return false;

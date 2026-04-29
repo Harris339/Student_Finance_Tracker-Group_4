@@ -1,17 +1,30 @@
 package com.example.studentfinancetracker_wk4;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.Calendar;
 import java.util.Date;
 
 public class User {
 
     private String email;
+    private double balance;
     private String password;
     private ExpenseList expenseList;
+    private SavingsList savingsList;
+
+    private SmartPercentageDivider percDivider;
+
     public User(String email, String password){
         this.email = email;
         this.password = password;
+        balance = 0.0;
         this.expenseList = new ExpenseList();
+        this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
+
+        Category c = new Category("Food", 0.5);
+        percDivider.addDivider(c);
 
         FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
 
@@ -29,12 +42,22 @@ public class User {
         subscription.setTotalPaid(31.98);
         subscription.addNewHist();
         expenseList.addExpense(subscription);
+
+        SavingsGoal laptop = new SavingsGoal("New Laptop", "Saving for a MacBook Pro", 1500.00, null);
+        laptop.addContribution(250.00);
+        laptop.addContribution(100.00);
+        savingsList.addGoal(laptop);
+
+
     }
 
     public User(){
         email = "";
+        balance = 0.0;
         password = "";
-
+        this.expenseList = new ExpenseList();
+        this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
     }
 
     public String getPassword() {
@@ -53,10 +76,17 @@ public class User {
         this.email = email;
     }
 
+    public double getBalance(){return balance;}
+
+    public void setBalance(double balance){this.balance = balance;}
+
     public void addExpense(FixedExpense expense){
         expenseList.addExpense(expense);
         System.out.println(expenseList.toString());
     }
 
     public ExpenseList getExpenseList(){ return expenseList; }
+    public SavingsList getSavingsList(){ return savingsList; }
+
+    public SmartPercentageDivider getPercDivider(){ return percDivider; }
 }

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -6,258 +7,288 @@
     android:padding="24dp"
     android:background="@drawable/rounded_box">
 
-    <!-- Title -->
-    <TextView
-        android:id="@+id/labelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit values for "
-        android:textSize="18sp"
-        android:textColor="@color/white"
-
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
-
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Netflix"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-
-        app:layout_constraintStart_toEndOf="@id/labelText"
-        app:layout_constraintBaseline_toBaselineOf="@id/labelText"/>
-
-    <ImageButton
-        android:id="@+id/btnExit"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/baseline_cancel_24"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Exit"
-
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/labelText"/>
-
-    <!-- Revert Section -->
-    <TextView
-        android:id="@+id/revertLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Revert payments"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-        android:layout_marginTop="16dp"
-
-        app:layout_constraintTop_toBottomOf="@id/labelText"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <EditText
-        android:id="@+id/editAmount"
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/rowHeader"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Enter total amount"
-        android:textSize="14sp"
-        android:textColorHint="@color/white"
-        android:textColor="@color/white"
-        android:layout_marginStart="8dp"
-        android:inputType="numberDecimal"
-
-        app:layout_constraintStart_toEndOf="@id/revertLabel"
-        app:layout_constraintEnd_toStartOf="@id/btnUndo"
-        app:layout_constraintTop_toTopOf="@id/revertLabel"
-        app:layout_constraintBottom_toBottomOf="@id/revertLabel" />
-
-    <ImageButton
-        android:id="@+id/btnUndo"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/baseline_undo_24"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Undo Payment"
-        app:layout_constraintEnd_toStartOf="@id/btnRedo"
-        app:layout_constraintTop_toTopOf="@id/editAmount"
-        app:layout_constraintBottom_toBottomOf="@id/editAmount"
-        android:layout_marginEnd="8dp"/>
-
-    <ImageButton
-        android:id="@+id/btnRedo"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:src="@drawable/baseline_undo_24"
-        android:rotationY="180"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Redo Payment"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/editAmount"
-        app:layout_constraintBottom_toBottomOf="@id/editAmount"/>
-
-    <!-- Amount Shown -->
-    <TextView
-        android:id="@+id/tvEuro"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="€"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
-
-        app:layout_constraintTop_toBottomOf="@+id/revertLabel"
-        app:layout_constraintEnd_toStartOf="@id/tvEuroAmount"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
-        android:id="@+id/tvEuroAmount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="13000"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit · "
+            android:textColor="#BBFFFFFF"
+            android:textSize="18sp"/>
 
-        app:layout_constraintTop_toBottomOf="@id/revertLabel"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"/>
 
-    <!-- Edit category section -->
-    <TextView
-        android:id="@+id/categoryLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit category"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
-        android:textStyle="bold"
-        android:textSize="16sp"
+        <ImageButton
+            android:id="@+id/btnExit"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/baseline_cancel_24"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"/>
+    </LinearLayout>
 
-        app:layout_constraintTop_toBottomOf="@+id/tvEuro"
-        app:layout_constraintStart_toStartOf="parent"/>
-
-    <Spinner
-        android:id="@+id/spCategory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16sp"
-
-        app:layout_constraintTop_toBottomOf="@id/tvEuro"
-        app:layout_constraintStart_toEndOf="@+id/revertLabel"
-        app:layout_constraintBottom_toBottomOf="@+id/categoryLabel"/>
-
-    <!-- Edit Frequency -->
-    <TextView
-        android:id="@+id/tvEditFreq"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit Frequency"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:layout_marginTop="16sp"
-
-        app:layout_constraintTop_toBottomOf="@id/categoryLabel"
-        app:layout_constraintStart_toStartOf="parent"/>
-
-    <Spinner
-        android:id="@+id/spFreq"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16sp"
-
-        app:layout_constraintTop_toBottomOf="@id/categoryLabel"
-        app:layout_constraintStart_toEndOf="@id/revertLabel"
-        app:layout_constraintBottom_toBottomOf="@+id/tvEditFreq"/>
-
-    <!-- Edit Title -->
-    <TextView
-        android:id="@+id/tvEditTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit Title"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:layout_marginTop="16sp"
-
-        app:layout_constraintTop_toBottomOf="@id/tvEditFreq"
-        app:layout_constraintStart_toStartOf="parent"/>
-
-    <EditText
-        android:id="@+id/etTitle"
+    <!-- Total paid section -->
+    <LinearLayout
+        android:id="@+id/sectionTotal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Title"
-        android:textColorHint="@color/white"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
-        android:textSize="14sp"
-        android:layout_marginStart="8dp"
+        android:orientation="vertical"
+        android:background="#1E1E1E"
+        android:padding="12dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/rowHeader"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        app:layout_constraintStart_toEndOf="@id/tvEditDesc"
-        app:layout_constraintTop_toBottomOf="@id/tvEditFreq"
-        app:layout_constraintBottom_toBottomOf="@id/tvEditTitle"
-        app:layout_constraintEnd_toStartOf="@+id/btnRedo"/>
+        <!-- Current total + undo/redo -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <!-- Edit Description -->
-    <TextView
-        android:id="@+id/tvEditDesc"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit Descritption"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:layout_marginTop="16sp"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Total paid"
+                android:textColor="#BBFFFFFF"
+                android:textSize="13sp"/>
 
-        app:layout_constraintTop_toBottomOf="@id/tvEditTitle"
-        app:layout_constraintStart_toStartOf="parent"/>
+            <TextView
+                android:id="@+id/tvEuro"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="€"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"/>
 
-    <EditText
-        android:id="@+id/etDesc"
+            <TextView
+                android:id="@+id/tvEuroAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="12dp"/>
+
+            <ImageButton
+                android:id="@+id/btnUndo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/baseline_undo_24"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Undo"/>
+
+            <ImageButton
+                android:id="@+id/btnRedo"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/baseline_undo_24"
+                android:rotationY="180"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Redo"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <!-- Override total directly -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:text="Override"
+                android:textColor="#BBFFFFFF"
+                android:textSize="13sp"/>
+
+            <EditText
+                android:id="@+id/editAmount"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:hint="Enter total amount"
+                android:textColorHint="#44FFFFFF"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:inputType="numberDecimal"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Title -->
+    <LinearLayout
+        android:id="@+id/rowEditTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Description"
-        android:textColorHint="@color/white"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
-        android:textSize="14sp"
-        android:layout_marginStart="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/sectionTotal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        app:layout_constraintTop_toBottomOf="@id/tvEditTitle"
-        app:layout_constraintStart_toEndOf="@id/tvEditDesc"
-        app:layout_constraintBottom_toBottomOf="@id/tvEditDesc"
-        app:layout_constraintEnd_toStartOf="@+id/btnRedo"/>
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Title"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
 
-    <!-- Edit Amount -->
-    <TextView
-        android:id="@+id/tvEditAmount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Edit Amount"
-        android:textColor="@color/white"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:layout_marginTop="16sp"
+        <EditText
+            android:id="@+id/etTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Leave blank to keep"
+            android:textColorHint="#44FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:inputType="text"/>
+    </LinearLayout>
 
-        app:layout_constraintTop_toBottomOf="@id/tvEditDesc"
-        app:layout_constraintStart_toStartOf="parent"/>
-
-    <EditText
-        android:id="@+id/etAmount"
+    <!-- Category -->
+    <LinearLayout
+        android:id="@+id/rowEditCategory"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:hint="Amount"
-        android:textColorHint="@color/white"
-        android:textColor="@color/white"
-        android:layout_marginTop="16sp"
-        android:textSize="14sp"
-        android:layout_marginStart="8dp"
-        android:inputType="numberDecimal"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/rowEditTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        app:layout_constraintTop_toBottomOf="@id/tvEditDesc"
-        app:layout_constraintStart_toEndOf="@id/tvEditDesc"
-        app:layout_constraintBottom_toBottomOf="@id/tvEditAmount"
-        app:layout_constraintEnd_toStartOf="@+id/btnRedo"/>
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Category"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
 
-    <!-- Start Date row (subscriptions only, hidden by default) -->
+        <Spinner
+            android:id="@+id/spCategory"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Frequency -->
+    <LinearLayout
+        android:id="@+id/rowEditFreq"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/rowEditCategory"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Frequency"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
+
+        <Spinner
+            android:id="@+id/spFreq"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Amount per period -->
+    <LinearLayout
+        android:id="@+id/rowEditAmount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/rowEditFreq"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Amount (€)"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/etAmount"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Leave blank to keep"
+            android:textColorHint="#44FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:inputType="numberDecimal"/>
+    </LinearLayout>
+
+    <!-- Notes -->
+    <LinearLayout
+        android:id="@+id/rowEditNotes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/rowEditAmount"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:text="Notes"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
+
+        <EditText
+            android:id="@+id/etDesc"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Leave blank to keep"
+            android:textColorHint="#44FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:inputType="text"/>
+    </LinearLayout>
+
+    <!-- Start date (subscriptions only, hidden by default) -->
     <LinearLayout
         android:id="@+id/startDateRow"
         android:layout_width="0dp"
@@ -265,53 +296,52 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:visibility="gone"
-        android:layout_marginTop="16dp"
-
-        app:layout_constraintTop_toBottomOf="@id/etAmount"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/rowEditNotes"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
-            android:layout_width="0dp"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="Start Date"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:textSize="16sp"/>
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"/>
 
         <Button
             android:id="@+id/btnEditStartDate"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"/>
-
     </LinearLayout>
 
-    <!-- Set Button & Delete Button-->
-    <Button
-        android:id="@+id/btnDelete"
-        android:layout_width="wrap_content"
+    <!-- Delete + Save actions -->
+    <LinearLayout
+        android:id="@+id/rowActions"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:text="Delete"
-        android:layout_marginTop="8dp"
-        app:layout_goneMarginTop="8dp"
-
+        android:orientation="horizontal"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@id/startDateRow"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/startDateRow"/>
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <Button
-        android:id="@+id/btnSet"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:text="Set"
-        android:layout_marginTop="8dp"
-        app:layout_goneMarginTop="8dp"
+        <Button
+            android:id="@+id/btnDelete"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Delete"
+            android:textColor="#FF6B6B"
+            android:layout_marginEnd="8dp"/>
 
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/startDateRow"/>
+        <Button
+            android:id="@+id/btnSet"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Save Changes"/>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -34,7 +34,8 @@ public class ChartActivity extends AppCompatActivity {
     Button previousBtn, nextBtn, editBtn, addBtn;
     TextView tvMonthLabel, tvSummaryMonth, tvTotalIncome, tvTotalExpenses, tvNetBalance;
     WebView barChartView, pieChartView, lineChartView;
-    SmartPercentageDivider divider = new SmartPercentageDivider();
+    User user = SessionManager.getInstance().getCurrentUser();
+    SmartPercentageDivider divider = user.getPercDivider();
     LinearLayout categoryContainer;
 
     int currentOffset = 0;

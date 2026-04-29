@@ -74,6 +74,10 @@ public class TransactionActivity extends AppCompatActivity {
                     .document(user.getUid())
                     .collection("transactions")
                     .add(transaction);
+
+            db.collection("users")
+                    .document(user.getUid())
+                    .update("Balance", com.google.firebase.firestore.FieldValue.increment(amount));
         }
     }
 }
