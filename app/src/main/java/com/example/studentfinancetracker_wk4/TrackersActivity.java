@@ -1052,5 +1052,8 @@ public class TrackersActivity extends AppCompatActivity {
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
                 );
+        db.collection("users")
+                .document(user.getUid())
+                .update("Balance", com.google.firebase.firestore.FieldValue.increment(-amount));
     }
 }
