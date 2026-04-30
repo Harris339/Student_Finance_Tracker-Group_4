@@ -36,6 +36,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.util.Log;
+
 public class TransactionsFragment extends Fragment {
 
     private TextView tvTransactions;
@@ -251,7 +255,10 @@ public class TransactionsFragment extends Fragment {
 
     private void saveTransaction(String category, double amount, String type) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            Log.e("NOTIF_DEBUG", "No firebase user found");
+            return;
+        }
 
         Map<String, Object> tx = new HashMap<>();
         tx.put("amount", amount);
@@ -260,9 +267,52 @@ public class TransactionsFragment extends Fragment {
         tx.put("createdAt", new Date());
 
         String uid = user.getUid();
+        double delta = type.equals("Income") ? amount : -amount;
+
+        Log.d("NOTIF_DEBUG", "Transaction type: " + type + " | Amount: " + amount + " | Delta: " + delta);
+
         db.collection("users").document(uid).collection("transactions").add(tx);
-        db.collection("users").document(uid)
-                .update("Balance", FieldValue.increment(type.equals("Income") ? amount : -amount));
+
+        db.collection("users").document(uid).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot == null || !snapshot.exists()) {
+                        Log.e("NOTIF_DEBUG", "User document does not exist");
+                        return;
+                    }
+
+                    Double currentBalance = snapshot.getDouble("Balance");
+                    Log.d("NOTIF_DEBUG", "Current balance from Firestore: " + currentBalance);
+
+                    if (currentBalance == null) currentBalance = 0.0;
+
+                    double newBalance = currentBalance + delta;
+                    Log.d("NOTIF_DEBUG", "New balance will be: " + newBalance);
+
+                    db.collection("users").document(uid).update("Balance", newBalance);
+
+                    // Check notification permission explicitly
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        boolean hasPermission = requireContext().checkSelfPermission(
+                                android.Manifest.permission.POST_NOTIFICATIONS)
+                                == PackageManager.PERMISSION_GRANTED;
+                        Log.d("NOTIF_DEBUG", "Notification permission granted: " + hasPermission);
+                    }
+
+                    if (newBalance < 0) {
+                        Log.d("NOTIF_DEBUG", "Balance is negative - attempting to send notification");
+                        if (isAdded()) {
+                            NotificationHelper.sendOverspendNotification(requireContext(), newBalance);
+                            Log.d("NOTIF_DEBUG", "Notification sent!");
+                        } else {
+                            Log.e("NOTIF_DEBUG", "Fragment not added to activity - notification skipped");
+                        }
+                    } else {
+                        Log.d("NOTIF_DEBUG", "Balance is NOT negative (" + newBalance + ") - no notification");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("NOTIF_DEBUG", "Failed to fetch user document: " + e.getMessage());
+                });
     }
 
     private int dp(int value) {

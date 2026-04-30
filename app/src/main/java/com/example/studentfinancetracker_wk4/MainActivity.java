@@ -1,7 +1,9 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
@@ -32,6 +34,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // ── Notifications setup ──────────────────────────────────────────
+        NotificationHelper.createNotificationChannel(this);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        100);
+            }
+        }
+        // ────────────────────────────────────────────────────────────────
 
         // Push fragment content below the status bar
         View fragmentContainer = findViewById(R.id.fragmentContainer);
@@ -101,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
                     List<Category> categories = new ArrayList<>();
                     for (Map<String, Object> item : items) {
-                        String name = (String) item.get("name");
+                        String name        = (String) item.get("name");
                         double percentage  = ((Number) item.get("percentage")).doubleValue();
                         double balance     = ((Number) item.get("balance")).doubleValue();
                         double lastAlloc   = ((Number) item.get("lastAllocation")).doubleValue();
