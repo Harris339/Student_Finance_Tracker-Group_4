@@ -16,7 +16,10 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import com.google.firebase.Timestamp;
+
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -114,6 +117,59 @@ public class MainActivity extends AppCompatActivity {
                     user.getPercDivider().setAllDividers(categories);
                     homeFragment.refreshPools();
                     chartsFragment.refreshData();
+                });
+
+        FirebaseFirestore.getInstance()
+                .collection("users").document(firebaseUser.getUid())
+                .collection("data").document("trackers")
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) return;
+
+                    User user = SessionManager.getInstance().getCurrentUser();
+                    if (user == null) return;
+
+                    user.getExpenseList().getAllExpenses().clear();
+                    user.getSavingsList().getAllGoals().clear();
+
+                    List<Map<String, Object>> expenses =
+                            (List<Map<String, Object>>) doc.get("expenses");
+                    if (expenses != null) {
+                        for (Map<String, Object> e : expenses) {
+                            String cat   = (String) e.get("category");
+                            String title = (String) e.get("title");
+                            double amt   = ((Number) e.get("amount")).doubleValue();
+                            String freq  = (String) e.get("frequency");
+                            String notes = (String) e.get("notes");
+                            double paid  = ((Number) e.get("totalPaid")).doubleValue();
+                            Date lastPay = e.get("lastPayment") instanceof Timestamp
+                                    ? ((Timestamp) e.get("lastPayment")).toDate() : null;
+
+                            FixedExpense expense = new FixedExpense(cat, title, amt, freq, notes);
+                            expense.setTotalPaid(paid);
+                            expense.setLastPayment(lastPay);
+                            user.getExpenseList().addExpense(expense);
+                        }
+                    }
+
+                    List<Map<String, Object>> savings =
+                            (List<Map<String, Object>>) doc.get("savings");
+                    if (savings != null) {
+                        for (Map<String, Object> s : savings) {
+                            String title   = (String) s.get("title");
+                            String notes   = (String) s.get("notes");
+                            double target  = ((Number) s.get("targetAmount")).doubleValue();
+                            double current = ((Number) s.get("currentAmount")).doubleValue();
+                            Date targetDate = s.get("targetDate") instanceof Timestamp
+                                    ? ((Timestamp) s.get("targetDate")).toDate() : null;
+
+                            SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate);
+                            goal.setCurrentAmount(current);
+                            user.getSavingsList().addGoal(goal);
+                        }
+                    }
+
+                    trackersFragment.refreshTrackers();
                 });
     }
 }

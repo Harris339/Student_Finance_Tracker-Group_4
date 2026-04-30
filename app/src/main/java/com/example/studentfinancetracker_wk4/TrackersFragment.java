@@ -287,6 +287,7 @@ public class TrackersFragment extends Fragment {
             FixedExpense expense = new FixedExpense(category, title, amount, frequency, description);
             if ("Subscriptions".equals(category)) expense.setLastPayment(startDate[0]);
             currentUser.addExpense(expense);
+            saveTrackers(currentUser);
 
             if ("Subscriptions".equals(category)) addSubscriptionBox(expense);
             else addExpenseBox(expense);
@@ -346,6 +347,7 @@ public class TrackersFragment extends Fragment {
 
             SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate[0]);
             savingsList.addGoal(goal);
+            saveTrackers(currentUser);
             addSavingsGoalBox(goal);
             dialog.dismiss();
         });
@@ -391,6 +393,7 @@ public class TrackersFragment extends Fragment {
                 return;
             }
             goal.addContribution(amount);
+            saveTrackers(currentUser);
             etContribute.setText("");
             refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
                     tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib);
@@ -513,6 +516,7 @@ public class TrackersFragment extends Fragment {
             btnCancel.setOnClickListener(ev -> { delDialog.dismiss(); dialog.dismiss(); });
             btnConfirmDelete.setOnClickListener(ev -> {
                 savingsList.removeGoal(goal);
+                saveTrackers(currentUser);
                 container.removeView(box);
                 updateEmptyState(container, R.id.emptySavings);
                 delDialog.dismiss();
@@ -543,6 +547,7 @@ public class TrackersFragment extends Fragment {
             goal.setTargetAmount(target);
             goal.setNotes(notesStr);
             goal.setTargetDate(targetDate[0]);
+            saveTrackers(currentUser);
 
             refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
                     tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib);
@@ -636,6 +641,10 @@ public class TrackersFragment extends Fragment {
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            percDivider.deductExpense(expense.getCategory(), amountToPay);
+            IncomeActivity.saveCategories(percDivider);
+            IncomeActivity.saveDivider(percDivider);
+            saveTrackers(currentUser);
             recordTransaction(expense.getCategory(), amountToPay);
         });
 
@@ -737,6 +746,7 @@ public class TrackersFragment extends Fragment {
                 setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
                 setNotesText(tvNotes, expense.getNotes());
                 setLastPaymentText(tvLastPayment, expense.getLastPayment());
+                saveTrackers(currentUser);
                 dialog.dismiss();
             });
 
@@ -753,6 +763,7 @@ public class TrackersFragment extends Fragment {
                 btnCancel.setOnClickListener(e -> { delDialog.dismiss(); dialog.dismiss(); });
                 btnDelete.setOnClickListener(e -> {
                     expenseList.removeExpense(expense);
+                    saveTrackers(currentUser);
                     container.removeView(box);
                     updateEmptyState(container, R.id.emptyExpenses);
                     delDialog.dismiss();
@@ -1030,6 +1041,68 @@ public class TrackersFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();
         btnClose.setOnClickListener(vv -> dialog.dismiss());
+    }
+
+    static void saveTrackers(User user) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        List<Map<String, Object>> expenseData = new ArrayList<>();
+        for (FixedExpense e : user.getExpenseList().getAllExpenses()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("category",   e.getCategory());
+            map.put("title",      e.getTitle());
+            map.put("amount",     e.getAmount());
+            map.put("frequency",  e.getFrequency());
+            map.put("notes",      e.getNotes() != null ? e.getNotes() : "");
+            map.put("totalPaid",  e.getTotalPaid());
+            map.put("lastPayment", e.getLastPayment());
+            expenseData.add(map);
+        }
+
+        List<Map<String, Object>> savingsData = new ArrayList<>();
+        for (SavingsGoal g : user.getSavingsList().getAllGoals()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("title",         g.getTitle());
+            map.put("notes",         g.getNotes() != null ? g.getNotes() : "");
+            map.put("targetAmount",  g.getTargetAmount());
+            map.put("currentAmount", g.getCurrentAmount());
+            map.put("targetDate",    g.getTargetDate());
+            savingsData.add(map);
+        }
+
+        Map<String, Object> doc = new HashMap<>();
+        doc.put("expenses", expenseData);
+        doc.put("savings",  savingsData);
+
+        FirebaseFirestore.getInstance()
+                .collection("users").document(firebaseUser.getUid())
+                .collection("data").document("trackers")
+                .set(doc);
+    }
+
+    void refreshTrackers() {
+        if (rootView == null || expenseList == null || savingsList == null) return;
+
+        LinearLayout expContainer = rootView.findViewById(R.id.fixedExpenseContainer);
+        LinearLayout subContainer = rootView.findViewById(R.id.subscriptionsContainer);
+        LinearLayout savContainer = rootView.findViewById(R.id.savingsContainer);
+
+        expContainer.removeAllViews();
+        subContainer.removeAllViews();
+        savContainer.removeAllViews();
+
+        for (FixedExpense expense : expenseList.getAllExpenses()) {
+            if ("Subscriptions".equals(expense.getCategory())) addSubscriptionBox(expense);
+            else addExpenseBox(expense);
+        }
+        for (SavingsGoal goal : savingsList.getAllGoals()) {
+            addSavingsGoalBox(goal);
+        }
+
+        updateEmptyState(expContainer, R.id.emptyExpenses);
+        updateEmptyState(subContainer, R.id.emptySubscriptions);
+        updateEmptyState(savContainer, R.id.emptySavings);
     }
 
     private void recordTransaction(String category, double amount) {
