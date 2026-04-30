@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -68,6 +69,8 @@ public class TrackersFragment extends Fragment {
         addButton = rootView.findViewById(R.id.addButton);
         ImageButton backbtn = rootView.findViewById(R.id.btnBack);
         backbtn.setVisibility(View.GONE);
+        BalanceViewModel viewModel =
+                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
         currentUser = SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
@@ -1055,5 +1058,8 @@ public class TrackersFragment extends Fragment {
                 .addOnFailureListener(e ->
                         Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
                 );
+        db.collection("users")
+                .document(user.getUid())
+                .update("Balance", com.google.firebase.firestore.FieldValue.increment(-amount));
     }
 }

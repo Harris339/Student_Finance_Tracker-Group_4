@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -49,14 +50,28 @@ public class HomeFragment extends Fragment {
 
         User currentUser = SessionManager.getInstance().getCurrentUser();
 
+        BalanceViewModel viewModel =
+                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
+
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(FirebaseAuth.getInstance().getUid())
+                .addSnapshotListener((snapshot, error) -> {
+
+                    if (snapshot == null || !snapshot.exists()) return;
+
+                    Double balance = snapshot.getDouble("Balance");
+                    if (balance == null) balance = 0.0;
+
+                    viewModel.setBalance(balance);
+                });
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
         TextView tvBalance = view.findViewById(R.id.balance);
         if (currentUser != null) {
             tvUserEmail.setText(currentUser.getEmail());
         }
 
-        showBalance(tvBalance);
-
+        showBalance(tvBalance, viewModel);
         loadPoolsFromFirebase(view);
 
         Button btnQuickIncome = view.findViewById(R.id.btnQuickIncome);
@@ -275,7 +290,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void showBalance(TextView tvBalance){
+    private void showBalance(TextView tvBalance, BalanceViewModel viewModel){
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
@@ -295,6 +310,8 @@ public class HomeFragment extends Fragment {
                         if (balance == null) balance = 0.0;
 
                         String newValue = String.format("Current Balance: €%.2f", balance);
+
+                        viewModel.setBalance(balance);
 
                         tvBalance.animate()
                                 .alpha(0f)

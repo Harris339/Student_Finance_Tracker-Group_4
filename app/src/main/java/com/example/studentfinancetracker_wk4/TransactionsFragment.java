@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -55,6 +56,8 @@ public class TransactionsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         tvTransactions = view.findViewById(R.id.tvTransactions);
+        BalanceViewModel viewModel =
+                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
         view.findViewById(R.id.btnAddIncome).setOnClickListener(v -> showTransactionDialog(true));
         view.findViewById(R.id.btnAddExpense).setOnClickListener(v -> showTransactionDialog(false));
