@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +24,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.Date;
@@ -32,6 +34,7 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment {
 
+    private ListenerRegistration balanceListener;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -47,9 +50,12 @@ public class HomeFragment extends Fragment {
         User currentUser = SessionManager.getInstance().getCurrentUser();
 
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
+        TextView tvBalance = view.findViewById(R.id.balance);
         if (currentUser != null) {
             tvUserEmail.setText(currentUser.getEmail());
         }
+
+        showBalance(tvBalance);
 
         loadPoolsFromFirebase(view);
 
@@ -73,6 +79,16 @@ public class HomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         refreshPools();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        if (balanceListener != null) {
+            balanceListener.remove();
+            balanceListener = null;
+        }
     }
 
     @Override
@@ -257,5 +273,39 @@ public class HomeFragment extends Fragment {
             row.addView(tvBalance);
             poolsContainer.addView(row);
         }
+    }
+
+    private void showBalance(TextView tvBalance){
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        balanceListener = FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(firebaseUser.getUid())
+                .addSnapshotListener((documentSnapshot, error) -> {
+
+                    if (error != null) {
+                        Log.e("FIRESTORE", "Listen failed", error);
+                        return;
+                    }
+
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+
+                        Double balance = documentSnapshot.getDouble("Balance");
+                        if (balance == null) balance = 0.0;
+
+                        String newValue = String.format("Current Balance: €%.2f", balance);
+
+                        tvBalance.animate()
+                                .alpha(0f)
+                                .setDuration(100)
+                                .withEndAction(() -> {
+                                    tvBalance.setText(newValue);
+                                    tvBalance.animate().alpha(1f).setDuration(100);
+                                });
+
+                    }
+                });
+
     }
 }
