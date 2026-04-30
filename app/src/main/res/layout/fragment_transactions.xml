@@ -116,15 +116,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:background="#2E2D2D">
 
-        <TextView
-            android:id="@+id/tvTransactions"
+        <LinearLayout
+            android:id="@+id/transactionContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:textColor="#DDDDDD"
-            android:padding="16dp"
-            android:lineSpacingExtra="6dp"
-            android:text="Loading transactions…"/>
+            android:orientation="vertical"
+            android:padding="16dp"/>
 
     </ScrollView>
 

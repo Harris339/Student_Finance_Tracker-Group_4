@@ -39,7 +39,7 @@ import java.util.Map;
 
 public class TransactionsFragment extends Fragment {
 
-    private TextView tvTransactions;
+    private LinearLayout transactionContainer;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
 
@@ -55,7 +55,7 @@ public class TransactionsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        tvTransactions = view.findViewById(R.id.tvTransactions);
+        transactionContainer = view.findViewById(R.id.transactionContainer);
         BalanceViewModel viewModel =
                 new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
@@ -225,26 +225,18 @@ public class TransactionsFragment extends Fragment {
         if (typeFilter != null)     query = query.whereEqualTo("type", typeFilter);
 
         query.get().addOnSuccessListener(snap -> {
-            if (!isAdded() || tvTransactions == null) return;
+            if (!isAdded() || transactionContainer == null) return;
+            transactionContainer.removeAllViews();
+
             if (snap.isEmpty()) {
-                tvTransactions.setText("No transactions found.");
+                TextView empty = new TextView(requireContext());
+                empty.setText("No transactions found.");
+                empty.setTextColor(Color.parseColor("#BBFFFFFF"));
+                empty.setTextSize(14);
+                transactionContainer.addView(empty);
                 return;
             }
-            StringBuilder sb = new StringBuilder();
-//            for (QueryDocumentSnapshot doc : snap) {
-//                String type     = doc.getString("type");
-//                String category = doc.getString("category");
-//                Double amount   = doc.getDouble("amount");
-//                Date createdAt  = doc.getDate("createdAt");
-//                String date     = createdAt != null ? dateFmt.format(createdAt) : "N/A";
-//
-//                sb.append("Type: ").append(type != null ? type : "N/A").append("\n");
-//                sb.append("Category: ").append(category != null ? category : "N/A").append("\n");
-//                sb.append("Amount: €").append(amount != null
-//                        ? String.format(Locale.getDefault(), "%.2f", amount) : "0.00").append("\n");
-//                sb.append("Date: ").append(date).append("\n");
-//                sb.append("------------------------------------------------------------------------------------------\n\n");
-//            }
+
             for (QueryDocumentSnapshot doc : snap) {
                 String type     = doc.getString("type");
                 String category = doc.getString("category");
@@ -252,39 +244,36 @@ public class TransactionsFragment extends Fragment {
                 Date createdAt  = doc.getDate("createdAt");
                 String date     = createdAt != null ? dateFmt.format(createdAt) : "N/A";
 
-                sb.append("╔══════════════════════════════╗\n");
+                boolean isIncome = "Income".equalsIgnoreCase(type);
+                String safeType     = type != null ? type : "N/A";
+                String safeCategory = category != null ? category : "General";
+                String amountStr    = "€" + (amount != null
+                        ? String.format(Locale.getDefault(), "%.2f", amount) : "0.00");
 
+                View card = requireActivity().getLayoutInflater()
+                        .inflate(R.layout.transaction_item, transactionContainer, false);
 
-                String safeType = type != null ? type : "N/A";
+                card.findViewById(R.id.accentStripe)
+                        .setBackgroundColor(Color.parseColor(isIncome ? "#4CAF50" : "#F44336"));
 
-                if ("Income".equalsIgnoreCase(safeType)) {
-                    sb.append("  🟢  TYPE: ");
-                } else {
-                    sb.append("  🔴  TYPE: ");
-                }
+                ((TextView) card.findViewById(R.id.tvCategory)).setText(safeCategory);
+                ((TextView) card.findViewById(R.id.tvType)).setText(safeType);
 
-                sb.append(safeType).append("\n");
+                TextView tvAmount = card.findViewById(R.id.tvAmount);
+                tvAmount.setText(amountStr);
+                tvAmount.setTextColor(Color.parseColor(isIncome ? "#4CAF50" : "#F44336"));
 
-                sb.append("         CATEGORY: ")
-                        .append(category != null ? category : "N/A")
-                        .append("\n");
+                ((TextView) card.findViewById(R.id.tvDate)).setText(date);
 
-                sb.append("         AMOUNT: €")
-                        .append(amount != null
-                                ? String.format(Locale.getDefault(), "%.2f", amount)
-                                : "0.00")
-                        .append("\n");
-
-                sb.append("         DATE: ")
-                        .append(date)
-                        .append("\n");
-
-                sb.append("╚══════════════════════════════╝\n\n");
+                transactionContainer.addView(card);
             }
-            tvTransactions.setText(sb.toString());
         }).addOnFailureListener(e -> {
-            if (isAdded() && tvTransactions != null)
-                tvTransactions.setText("Failed to load transactions.");
+            if (!isAdded() || transactionContainer == null) return;
+            transactionContainer.removeAllViews();
+            TextView err = new TextView(requireContext());
+            err.setText("Failed to load transactions.");
+            err.setTextColor(Color.parseColor("#BBFFFFFF"));
+            transactionContainer.addView(err);
         });
     }
 
