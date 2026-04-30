@@ -74,15 +74,22 @@
         app:layout_constraintTop_toTopOf="@id/tvFreq"
         app:layout_constraintBottom_toBottomOf="@id/tvFreq"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Set Filters"
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/setBtn"
-        android:layout_marginTop="25dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Apply Filters"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+
+        android:layout_marginTop="16dp"
+
+        app:backgroundTint="@color/button_bg"
+        android:textColor="@color/button_text"
+        app:strokeColor="@color/button_text"
+
+        app:rippleColor="#22000000"
 
         app:layout_constraintEnd_toEndOf="@+id/spType"
-        app:layout_constraintTop_toBottomOf="@+id/tvFreq"
-        />
+        app:layout_constraintTop_toBottomOf="@+id/tvFreq"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

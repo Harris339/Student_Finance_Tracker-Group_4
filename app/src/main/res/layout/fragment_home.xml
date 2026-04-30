@@ -114,6 +114,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Add Income"
+                android:backgroundTint="#2E7D5E"
                 android:layout_marginEnd="8dp"/>
 
             <Button
@@ -122,6 +123,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Add Expense"
+                android:backgroundTint="#8B3A2A"
                 android:layout_marginStart="8dp"/>
 
         </LinearLayout>
