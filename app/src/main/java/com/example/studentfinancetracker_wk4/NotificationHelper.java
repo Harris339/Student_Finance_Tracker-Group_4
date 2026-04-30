@@ -29,7 +29,7 @@ public class NotificationHelper {
 
     public static void sendOverspendNotification(Context context, double balance) {
         String message = String.format(
-                "Your balance is €%.2f. You've spent more than your income!", balance);
+                "Your balance is now €%.2f. You are overspending!", balance);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)

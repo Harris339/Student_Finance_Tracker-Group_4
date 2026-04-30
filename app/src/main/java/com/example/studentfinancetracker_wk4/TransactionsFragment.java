@@ -300,7 +300,7 @@ public class TransactionsFragment extends Fragment {
 
                     if (newBalance < 0) {
                         Log.d("NOTIF_DEBUG", "Balance is negative - attempting to send notification");
-                        if (isAdded()) {
+                        if (type.equals("Expense") && isAdded()) {
                             NotificationHelper.sendOverspendNotification(requireContext(), newBalance);
                             Log.d("NOTIF_DEBUG", "Notification sent!");
                         } else {
