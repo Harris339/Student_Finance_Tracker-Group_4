@@ -1,5 +1,7 @@
 package com.example.studentfinancetracker_wk4;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -216,6 +218,34 @@ public class SmartPercentageDivider {
             c.setLastAllocation(allocation);
             c.setBalance(c.getBalance() + allocation);
         }
+    }
+
+    public void deductExpense(String category, double amount) {
+        for (Category c : divisions) {
+            if (c.getCategory().equals(category)) {
+                c.setBalance(c.getBalance() - amount);
+                return;
+            }
+        }
+    }
+
+    public void redistributeDeletedBalance(double deletedBalance) {
+        if (divisions.isEmpty() || deletedBalance <= 0) return;
+
+        double totalPercent = getTotalPercentage();
+        if (totalPercent == 0) return;
+
+        double assigned = 0;
+        for (int i = 0; i < divisions.size() - 1; i++) {
+            Category c = divisions.get(i);
+            double share = Math.round((c.getPercentage() / totalPercent) * deletedBalance * 100.0) / 100.0;
+            c.setBalance(c.getBalance() + share);
+            assigned += share;
+        }
+
+        double leftover = Math.round((deletedBalance - assigned) * 100.0) / 100.0;
+        divisions.get(divisions.size() - 1).setBalance(
+                divisions.get(divisions.size() - 1).getBalance() + leftover);
     }
 
     @Override

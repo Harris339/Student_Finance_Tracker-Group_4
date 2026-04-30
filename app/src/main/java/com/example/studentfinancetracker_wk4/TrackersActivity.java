@@ -637,6 +637,9 @@ public class TrackersActivity extends AppCompatActivity {
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            percDivider.deductExpense(expense.getCategory(), amountToPay);
+            IncomeActivity.saveCategories(percDivider);
+            IncomeActivity.saveDivider(percDivider);
             recordTransaction(expense.getCategory(), amountToPay);
         });
 
