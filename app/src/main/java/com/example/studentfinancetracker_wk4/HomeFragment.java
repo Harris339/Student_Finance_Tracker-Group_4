@@ -38,6 +38,7 @@ import java.util.Map;
 public class HomeFragment extends Fragment {
 
     private ListenerRegistration balanceListener;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -59,14 +60,12 @@ public class HomeFragment extends Fragment {
                 .collection("users")
                 .document(FirebaseAuth.getInstance().getUid())
                 .addSnapshotListener((snapshot, error) -> {
-
                     if (snapshot == null || !snapshot.exists()) return;
-
                     Double balance = snapshot.getDouble("Balance");
                     if (balance == null) balance = 0.0;
-
                     viewModel.setBalance(balance);
                 });
+
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
         TextView tvBalance = view.findViewById(R.id.balance);
         if (currentUser != null) {
@@ -101,7 +100,6 @@ public class HomeFragment extends Fragment {
     @Override
     public void onStop() {
         super.onStop();
-
         if (balanceListener != null) {
             balanceListener.remove();
             balanceListener = null;
@@ -122,7 +120,6 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadPoolsFromFirebase(View view) {
-
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
@@ -132,28 +129,21 @@ public class HomeFragment extends Fragment {
                 .collection("percDividers")
                 .get()
                 .addOnSuccessListener(snapshot -> {
-
                     List<Category> list = new java.util.ArrayList<>();
-
                     for (QueryDocumentSnapshot doc : snapshot) {
                         String name = doc.getId();
                         Double percent = doc.getDouble("percentage");
                         Double balance = doc.getDouble("balance");
-
                         if (percent == null) percent = 0.0;
                         if (balance == null) balance = 0.0;
-
                         Category c = new Category(name, percent);
                         c.setBalance(balance);
-
                         list.add(c);
                     }
-
                     User user = SessionManager.getInstance().getCurrentUser();
                     if (user != null) {
                         user.getPercDivider().setAllDividers(list);
                     }
-
                     renderPools(view, user);
                 });
     }
@@ -188,7 +178,6 @@ public class HomeFragment extends Fragment {
                     poolNames.add(c.getCategory());
                 }
             }
-
             spCategory = new Spinner(requireContext());
             spCategory.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
                     android.graphics.Color.parseColor("#2A2A2C")));
@@ -250,6 +239,13 @@ public class HomeFragment extends Fragment {
                     IncomeActivity.saveDivider(user.getPercDivider());
                 }
             } else {
+                // ── FIXED: null check before calling toString() ──
+                if (finalSpCategory == null || finalSpCategory.getSelectedItem() == null) {
+                    Toast.makeText(requireContext(),
+                            "No categories available. Please set up your income pools first.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
                 category = finalSpCategory.getSelectedItem().toString();
                 User user = SessionManager.getInstance().getCurrentUser();
                 if (user != null) {
@@ -328,7 +324,7 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void showBalance(TextView tvBalance, BalanceViewModel viewModel){
+    private void showBalance(TextView tvBalance, BalanceViewModel viewModel) {
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
@@ -336,21 +332,15 @@ public class HomeFragment extends Fragment {
                 .collection("users")
                 .document(firebaseUser.getUid())
                 .addSnapshotListener((documentSnapshot, error) -> {
-
                     if (error != null) {
                         Log.e("FIRESTORE", "Listen failed", error);
                         return;
                     }
-
                     if (documentSnapshot != null && documentSnapshot.exists()) {
-
                         Double balance = documentSnapshot.getDouble("Balance");
                         if (balance == null) balance = 0.0;
-
                         String newValue = String.format("Current Balance: €%.2f", balance);
-
                         viewModel.setBalance(balance);
-
                         tvBalance.animate()
                                 .alpha(0f)
                                 .setDuration(100)
@@ -358,9 +348,7 @@ public class HomeFragment extends Fragment {
                                     tvBalance.setText(newValue);
                                     tvBalance.animate().alpha(1f).setDuration(100);
                                 });
-
                     }
                 });
-
     }
 }

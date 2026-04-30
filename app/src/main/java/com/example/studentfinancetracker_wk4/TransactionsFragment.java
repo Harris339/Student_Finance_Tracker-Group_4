@@ -124,8 +124,7 @@ public class TransactionsFragment extends Fragment {
     //
     //  addSnapshotListener registers a permanent callback with Firestore.
     //  Every time the user document changes (including the Balance field),
-    //  Firestore pushes the new snapshot to this callback automatically —
-    //  no polling, no manual threading required.
+    //  Firestore pushes the new snapshot to this callback automatically, and then there is no polling, no manual threading required.
     //
     //  The moment saveTransaction() writes a new negative Balance to Firestore,
     //  this listener fires and shows the warning dialog.
