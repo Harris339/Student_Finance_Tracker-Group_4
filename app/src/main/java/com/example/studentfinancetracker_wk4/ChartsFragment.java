@@ -158,6 +158,21 @@ public class ChartsFragment extends Fragment {
                         LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                 btnRemove.setLayoutParams(removeParams);
                 btnRemove.setOnClickListener(vr -> {
+                    int visibleCount = 0;
+
+                    for (int j = 0; j < editContainer.getChildCount(); j++) {
+                        if (editContainer.getChildAt(j).getVisibility() == View.VISIBLE) {
+                            visibleCount++;
+                        }
+                    }
+
+                    if (visibleCount <= 1) {
+                        Toast.makeText(requireContext(),
+                                "You must have at least one category",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
                     row.setVisibility(View.GONE);
                     removedCategories.add(categoryName);
                     editedIndices.remove(index);
