@@ -19,56 +19,6 @@ public class SmartPercentageDivider {
     }
 
     public void setAllDividers(List<Category> newDivisions) {
-        double total = 0;
-
-        for (Category c : newDivisions) {
-            total += c.getPercentage();
-        }
-
-        if (total == 0) {
-            divisions.clear();
-            divisions.addAll(newDivisions);
-            return;
-        }
-
-        // Step 1: Normalize
-        List<Double> normalized = new ArrayList<>();
-        for (Category c : newDivisions) {
-            normalized.add((c.getPercentage() / total) * 100);
-        }
-
-        // Step 2: Floor values and track remainders
-        int[] finalInts = new int[normalized.size()];
-        double[] remainders = new double[normalized.size()];
-        int sum = 0;
-
-        for (int i = 0; i < normalized.size(); i++) {
-            finalInts[i] = (int) Math.floor(normalized.get(i));
-            remainders[i] = normalized.get(i) - finalInts[i];
-            sum += finalInts[i];
-        }
-
-        // Step 3: Distribute remaining %
-        int remaining = 100 - sum;
-
-        while (remaining > 0) {
-            int maxIndex = 0;
-            for (int i = 1; i < remainders.length; i++) {
-                if (remainders[i] > remainders[maxIndex]) {
-                    maxIndex = i;
-                }
-            }
-
-            finalInts[maxIndex]++;
-            remainders[maxIndex] = 0; // prevent re-picking
-            remaining--;
-        }
-
-        // Step 4: Apply results
-        for (int i = 0; i < newDivisions.size(); i++) {
-            newDivisions.get(i).setPercentage(finalInts[i]);
-        }
-
         divisions.clear();
         divisions.addAll(newDivisions);
     }
@@ -81,62 +31,164 @@ public class SmartPercentageDivider {
         return total;
     }
 
-    public void addDivider(String name, double newPercent) {
-        if (newPercent >= 100) {
-            divisions.clear();
-            divisions.add(new Category(name, 100));
-            return;
-        }
+    public void rebalanceExcept(Category editedCategory) {
+        double lockedPercent = clamp(Math.round(editedCategory.getPercentage() * 10.0) / 10.0, 0, 100);
+        editedCategory.setPercentage(lockedPercent);
 
-        double remaining = 100 - newPercent;
-        double currentTotal = getTotalPercentage();
+        double remaining = 100.0 - lockedPercent;
 
+        List<Category> others = new ArrayList<>();
+        double otherTotal = 0;
         for (Category c : divisions) {
-            double adjusted = (c.getPercentage() / currentTotal) * remaining;
-            c.setPercentage(adjusted);
+            if (c != editedCategory) {
+                others.add(c);
+                otherTotal += c.getPercentage();
+            }
         }
 
-        divisions.add(new Category(name, newPercent));
+        if (others.isEmpty()) return;
+
+        if (otherTotal == 0) {
+            double split = Math.round((remaining / others.size()) * 10.0) / 10.0;
+            for (Category c : others) {
+                c.setPercentage(split);
+            }
+        } else {
+            double assigned = 0;
+            for (Category c : others) {
+                double newPercent = Math.round((c.getPercentage() / otherTotal) * remaining * 10.0) / 10.0;
+                c.setPercentage(newPercent);
+                assigned += newPercent;
+            }
+
+            double leftover = Math.round((remaining - assigned) * 10.0) / 10.0;
+            if (Math.abs(leftover) > 0.0) {
+                Category biggest = others.get(0);
+                for (Category c : others) {
+                    if (c.getPercentage() > biggest.getPercentage()) {
+                        biggest = c;
+                    }
+                }
+                biggest.setPercentage(Math.round((biggest.getPercentage() + leftover) * 10.0) / 10.0);
+            }
+        }
     }
 
-    public void addDivider(Category c) {
-        String name = c.getCategory();
-        double newPercent = c.getPercentage();
-        if (newPercent >= 100) {
-            divisions.clear();
-            divisions.add(new Category(name, 100));
+    public void rebalanceExceptMultiple(List<Category> editedCategories) {
+        double lockedTotal = 0;
+        for (Category edited : editedCategories) {
+            double locked = clamp(Math.round(edited.getPercentage() * 10.0) / 10.0, 0, 100);
+            edited.setPercentage(locked);
+            lockedTotal += locked;
+        }
+
+        if (lockedTotal > 100) {
+            for (Category edited : editedCategories) {
+                edited.setPercentage(Math.round((edited.getPercentage() / lockedTotal) * 100.0 * 10.0) / 10.0);
+            }
+            lockedTotal = 100;
+        }
+
+        double remaining = 100.0 - lockedTotal;
+
+        List<Category> others = new ArrayList<>();
+        double otherTotal = 0;
+        for (Category c : divisions) {
+            if (!editedCategories.contains(c)) {
+                others.add(c);
+                otherTotal += c.getPercentage();
+            }
+        }
+
+        if (others.isEmpty()) return;
+
+        if (otherTotal == 0 || remaining == 0) {
+            for (Category c : others) c.setPercentage(0);
+            if (remaining > 0) {
+                Category biggestEdited = editedCategories.get(0);
+                for (Category e : editedCategories) {
+                    if (e.getPercentage() > biggestEdited.getPercentage()) biggestEdited = e;
+                }
+                biggestEdited.setPercentage(Math.round((biggestEdited.getPercentage() + remaining) * 10.0) / 10.0);
+            }
             return;
         }
 
-        double remaining = 100 - newPercent;
-        double currentTotal = getTotalPercentage();
-
-        for (Category cat : divisions) {
-            double adjusted = (c.getPercentage() / currentTotal) * remaining;
-            cat.setPercentage(adjusted);
+        double assigned = 0;
+        for (Category c : others) {
+            double newPercent = Math.round((c.getPercentage() / otherTotal) * remaining * 10.0) / 10.0;
+            c.setPercentage(newPercent);
+            assigned += newPercent;
         }
 
-        divisions.add(new Category(name, newPercent));
+        double leftover = Math.round((remaining - assigned) * 10.0) / 10.0;
+        if (Math.abs(leftover) > 0.0) {
+            Category biggest = others.get(0);
+            for (Category c : others) {
+                if (c.getPercentage() > biggest.getPercentage()) biggest = c;
+            }
+            biggest.setPercentage(Math.round((biggest.getPercentage() + leftover) * 10.0) / 10.0);
+        }
     }
 
-    public boolean updateAllPercentages(List<Double> newPercentages) {
-        if (newPercentages.size() != divisions.size()) {
-            return false;
+    public void rebalanceAll() {
+        if (divisions.isEmpty()) return;
+
+        double total = getTotalPercentage();
+
+        if (total == 0) {
+            double split = Math.round((100.0 / divisions.size()) * 10.0) / 10.0;
+            for (Category c : divisions) {
+                c.setPercentage(split);
+            }
+            double assigned = split * divisions.size();
+            double leftover = Math.round((100.0 - assigned) * 10.0) / 10.0;
+            if (Math.abs(leftover) > 0.0) {
+                divisions.get(0).setPercentage(
+                        Math.round((divisions.get(0).getPercentage() + leftover) * 10.0) / 10.0);
+            }
+            return;
         }
 
-        double total = 0;
-        for (double p : newPercentages) {
-            total += p;
+        double assigned = 0;
+        for (Category c : divisions) {
+            double newPercent = Math.round((c.getPercentage() / total) * 100.0 * 10.0) / 10.0;
+            c.setPercentage(newPercent);
+            assigned += newPercent;
         }
 
-        if (Math.abs(total - 100) > 0.01) {
-            return false;
+        double leftover = Math.round((100.0 - assigned) * 10.0) / 10.0;
+        if (Math.abs(leftover) > 0.0) {
+            Category biggest = divisions.get(0);
+            for (Category c : divisions) {
+                if (c.getPercentage() > biggest.getPercentage()) {
+                    biggest = c;
+                }
+            }
+            biggest.setPercentage(Math.round((biggest.getPercentage() + leftover) * 10.0) / 10.0);
         }
+    }
 
-        for (int i = 0; i < divisions.size(); i++) {
-            divisions.get(i).setPercentage(newPercentages.get(i));
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    public void addDivider(String name, double newPercent) {
+        if (newPercent < 0) newPercent = 1;
+        if (newPercent > 100) newPercent = 100;
+
+        Category newCategory = new Category(name, newPercent);
+        divisions.add(newCategory);
+        if (divisions.size() == 1) return;
+        if (newPercent == 100) {
+            for (Category c : divisions) {
+                if (c != newCategory) {
+                    c.setPercentage(0);
+                }
+            }
+            return;
         }
-        return true;
+        rebalanceExcept(newCategory);
     }
 
     public double getTotalAllocations() {

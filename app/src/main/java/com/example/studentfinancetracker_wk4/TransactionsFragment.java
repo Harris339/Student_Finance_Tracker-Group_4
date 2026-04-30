@@ -19,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -59,6 +60,8 @@ public class TransactionsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         tvTransactions = view.findViewById(R.id.tvTransactions);
+        BalanceViewModel viewModel =
+                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
         view.findViewById(R.id.btnAddIncome).setOnClickListener(v -> showTransactionDialog(true));
         view.findViewById(R.id.btnAddExpense).setOnClickListener(v -> showTransactionDialog(false));
@@ -232,6 +235,20 @@ public class TransactionsFragment extends Fragment {
                 return;
             }
             StringBuilder sb = new StringBuilder();
+//            for (QueryDocumentSnapshot doc : snap) {
+//                String type     = doc.getString("type");
+//                String category = doc.getString("category");
+//                Double amount   = doc.getDouble("amount");
+//                Date createdAt  = doc.getDate("createdAt");
+//                String date     = createdAt != null ? dateFmt.format(createdAt) : "N/A";
+//
+//                sb.append("Type: ").append(type != null ? type : "N/A").append("\n");
+//                sb.append("Category: ").append(category != null ? category : "N/A").append("\n");
+//                sb.append("Amount: €").append(amount != null
+//                        ? String.format(Locale.getDefault(), "%.2f", amount) : "0.00").append("\n");
+//                sb.append("Date: ").append(date).append("\n");
+//                sb.append("------------------------------------------------------------------------------------------\n\n");
+//            }
             for (QueryDocumentSnapshot doc : snap) {
                 String type     = doc.getString("type");
                 String category = doc.getString("category");
@@ -239,12 +256,34 @@ public class TransactionsFragment extends Fragment {
                 Date createdAt  = doc.getDate("createdAt");
                 String date     = createdAt != null ? dateFmt.format(createdAt) : "N/A";
 
-                sb.append("Type: ").append(type != null ? type : "N/A").append("\n");
-                sb.append("Category: ").append(category != null ? category : "N/A").append("\n");
-                sb.append("Amount: €").append(amount != null
-                        ? String.format(Locale.getDefault(), "%.2f", amount) : "0.00").append("\n");
-                sb.append("Date: ").append(date).append("\n");
-                sb.append("----------------------\n\n");
+                sb.append("╔══════════════════════════════╗\n");
+
+
+                String safeType = type != null ? type : "N/A";
+
+                if ("Income".equalsIgnoreCase(safeType)) {
+                    sb.append("  🟢  TYPE: ");
+                } else {
+                    sb.append("  🔴  TYPE: ");
+                }
+
+                sb.append(safeType).append("\n");
+
+                sb.append("         CATEGORY: ")
+                        .append(category != null ? category : "N/A")
+                        .append("\n");
+
+                sb.append("         AMOUNT: €")
+                        .append(amount != null
+                                ? String.format(Locale.getDefault(), "%.2f", amount)
+                                : "0.00")
+                        .append("\n");
+
+                sb.append("         DATE: ")
+                        .append(date)
+                        .append("\n");
+
+                sb.append("╚══════════════════════════════╝\n\n");
             }
             tvTransactions.setText(sb.toString());
         }).addOnFailureListener(e -> {

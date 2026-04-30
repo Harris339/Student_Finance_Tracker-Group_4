@@ -26,12 +26,15 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class ChartsFragment extends Fragment {
 
@@ -102,7 +105,14 @@ public class ChartsFragment extends Fragment {
             LinearLayout editContainer = editView.findViewById(R.id.editContainer);
             Button btnSave = editView.findViewById(R.id.btnSave);
 
-            for (Category c : divider.getAllDividers()) {
+            Set<Integer> editedIndices = new HashSet<>();
+
+            List<Category> existing = divider.getAllDividers();
+
+            for (int i = 0; i < existing.size(); i++) {
+                Category c = existing.get(i);
+                final int index = i;
+
                 LinearLayout row = new LinearLayout(requireContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setPadding(0, 8, 0, 8);
@@ -112,7 +122,8 @@ public class ChartsFragment extends Fragment {
                 LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 2);
                 spinner.setLayoutParams(spinnerParams);
-                spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#2A2A2C")));
+                spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+                        android.graphics.Color.parseColor("#2A2A2C")));
                 ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                         requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
                 adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
@@ -124,11 +135,16 @@ public class ChartsFragment extends Fragment {
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
                 percentParams.setMarginStart(8);
                 percent.setLayoutParams(percentParams);
-                percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.format(java.util.Locale.US, "%.1f", c.getPercentage()));
+                percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                        | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                percent.setText(String.format(java.util.Locale.US, "%.0f", c.getPercentage()));
                 percent.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
                 percent.setHintTextColor(android.graphics.Color.parseColor("#888888"));
                 percent.setHint("%");
+
+                percent.setOnFocusChangeListener((focusView, hasFocus) -> {
+                    if (!hasFocus) editedIndices.add(index);
+                });
 
                 row.addView(spinner);
                 row.addView(percent);
@@ -140,13 +156,14 @@ public class ChartsFragment extends Fragment {
                     .create();
 
             btnSave.setOnClickListener(v2 -> {
+                View focused = dialog.getCurrentFocus();
+                if (focused != null) focused.clearFocus();
 
                 FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
                 if (firebaseUser == null) return;
                 String uid = firebaseUser.getUid();
 
                 int childCount = editContainer.getChildCount();
-                List<Category> existing = divider.getAllDividers();
                 List<Category> updated = new java.util.ArrayList<>();
 
                 for (int i = 0; i < childCount; i++) {
@@ -168,21 +185,34 @@ public class ChartsFragment extends Fragment {
                         updated_c.setLastAllocation(existing.get(i).getLastAllocation());
                     }
                     updated.add(updated_c);
-
-                    Map<String, Object> update = new HashMap<>();
-                    update.put("percentage", value);
-
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(category)
-                            .update(update);
                 }
 
                 divider.setAllDividers(updated);
+
+                if (editedIndices.isEmpty()) {
+                    divider.rebalanceAll();
+                } else {
+                    List<Category> anchors = new ArrayList<>();
+                    for (int idx : editedIndices) {
+                        if (idx < divider.getAllDividers().size()) {
+                            anchors.add(divider.getAllDividers().get(idx));
+                        }
+                    }
+                    divider.rebalanceExceptMultiple(anchors);
+                }
+
+                for (Category c : divider.getAllDividers()) {
+                    Map<String, Object> update = new HashMap<>();
+                    update.put("percentage", c.getPercentage());
+                    db.collection("users")
+                            .document(uid)
+                            .collection("percDividers")
+                            .document(c.getCategory())
+                            .update(update);
+                }
+
                 IncomeActivity.saveCategories(divider);
                 renderCategories();
-                loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -240,21 +270,22 @@ public class ChartsFragment extends Fragment {
                     }
                 }
 
-                Map<String, Object> category = new HashMap<>();
-                category.put("percentage", percent);
-                category.put("balance", 0);
-                category.put("lastAllocation", 0);
-
-                db.collection("users")
-                        .document(uid)
-                        .collection("percDividers")
-                        .document(name)
-                        .set(category);
-
                 divider.addDivider(name, percent);
+
+                for (Category c : divider.getAllDividers()) {
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("percentage", c.getPercentage());
+                    data.put("balance", c.getBalance());
+                    data.put("lastAllocation", c.getLastAllocation());
+                    db.collection("users")
+                            .document(uid)
+                            .collection("percDividers")
+                            .document(c.getCategory())
+                            .set(data);
+                }
+
                 IncomeActivity.saveCategories(divider);
                 renderCategories();
-                loadDividerFromFirebase();
                 Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -264,7 +295,6 @@ public class ChartsFragment extends Fragment {
     }
 
     private void loadDividerFromFirebase() {
-
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
@@ -273,24 +303,21 @@ public class ChartsFragment extends Fragment {
                 .collection("percDividers")
                 .get()
                 .addOnSuccessListener(snapshot -> {
-
                     List<Category> list = new java.util.ArrayList<>();
 
                     for (QueryDocumentSnapshot doc : snapshot) {
-
                         String name = doc.getId();
                         Double percent = doc.getDouble("percentage");
                         Double balance = doc.getDouble("balance");
-                        Double last = doc.getDouble("lastAllocation");
+                        Double last    = doc.getDouble("lastAllocation");
 
                         if (percent == null) percent = 0.0;
                         if (balance == null) balance = 0.0;
-                        if (last == null) last = 0.0;
+                        if (last    == null) last    = 0.0;
 
                         Category c = new Category(name, percent);
                         c.setBalance(balance);
                         c.setLastAllocation(last);
-
                         list.add(c);
                     }
 
