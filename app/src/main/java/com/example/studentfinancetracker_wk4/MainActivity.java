@@ -22,6 +22,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import android.content.pm.PackageManager;
+import android.os.Build;
+
 public class MainActivity extends AppCompatActivity {
 
     private Fragment activeFragment;
