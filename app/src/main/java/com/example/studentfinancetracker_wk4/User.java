@@ -1,10 +1,5 @@
 package com.example.studentfinancetracker_wk4;
 
-import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.Calendar;
-import java.util.Date;
-
 public class User {
 
     private String email;
@@ -22,30 +17,6 @@ public class User {
         this.expenseList = new ExpenseList();
         this.savingsList = new SavingsList();
         this.percDivider = new SmartPercentageDivider();
-
-        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
-
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, -10);
-        Date tendaysago = cal.getTime();
-        expense.setLastPayment(tendaysago);
-
-        expenseList.addExpense(expense);
-
-        FixedExpense subscription = new FixedExpense("Subscriptions", "Netflix", 15.99, "Monthly", "");
-        Calendar subCal = Calendar.getInstance();
-        subCal.add(Calendar.DAY_OF_MONTH, -20);
-        subscription.setLastPayment(subCal.getTime());
-        subscription.setTotalPaid(31.98);
-        subscription.addNewHist();
-        expenseList.addExpense(subscription);
-
-        SavingsGoal laptop = new SavingsGoal("New Laptop", "Saving for a MacBook Pro", 1500.00, null);
-        laptop.addContribution(250.00);
-        laptop.addContribution(100.00);
-        savingsList.addGoal(laptop);
-
-
     }
 
     public User(){
