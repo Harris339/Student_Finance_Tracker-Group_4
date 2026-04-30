@@ -8,10 +8,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -168,12 +170,37 @@ public class HomeFragment extends Fragment {
         layout.addView(etAmount, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        EditText etCategory = new EditText(requireContext());
-        etCategory.setHint("Category (optional)");
-        LinearLayout.LayoutParams catParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        catParams.topMargin = dp(8);
-        layout.addView(etCategory, catParams);
+        EditText etCategory = null;
+        Spinner spCategory = null;
+
+        if (isIncome) {
+            etCategory = new EditText(requireContext());
+            etCategory.setHint("Category (optional)");
+            LinearLayout.LayoutParams catParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            catParams.topMargin = dp(8);
+            layout.addView(etCategory, catParams);
+        } else {
+            User user = SessionManager.getInstance().getCurrentUser();
+            List<String> poolNames = new java.util.ArrayList<>();
+            if (user != null) {
+                for (Category c : user.getPercDivider().getAllDividers()) {
+                    poolNames.add(c.getCategory());
+                }
+            }
+
+            spCategory = new Spinner(requireContext());
+            spCategory.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
+                    android.graphics.Color.parseColor("#2A2A2C")));
+            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+                    requireContext(), R.layout.spinner_item_white, poolNames);
+            categoryAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            spCategory.setAdapter(categoryAdapter);
+            LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            spinnerParams.topMargin = dp(8);
+            layout.addView(spCategory, spinnerParams);
+        }
 
         Button btnConfirm = new Button(requireContext());
         btnConfirm.setText(isIncome ? "Add Income" : "Add Expense");
@@ -189,6 +216,9 @@ public class HomeFragment extends Fragment {
                 .setTitle(isIncome ? "Add Income" : "Add Expense")
                 .setView(layout)
                 .create();
+
+        final EditText finalEtCategory = etCategory;
+        final Spinner finalSpCategory = spCategory;
 
         btnConfirm.setOnClickListener(v -> {
             String amountStr = etAmount.getText().toString().trim();
@@ -208,14 +238,22 @@ public class HomeFragment extends Fragment {
                 return;
             }
 
-            String category = etCategory.getText().toString().trim();
-            if (category.isEmpty()) category = "General";
+            String category;
             String type = isIncome ? "Income" : "Expense";
 
             if (isIncome) {
+                category = finalEtCategory.getText().toString().trim();
+                if (category.isEmpty()) category = "General";
                 User user = SessionManager.getInstance().getCurrentUser();
                 if (user != null) {
                     user.getPercDivider().allocateIncome(amount);
+                    IncomeActivity.saveDivider(user.getPercDivider());
+                }
+            } else {
+                category = finalSpCategory.getSelectedItem().toString();
+                User user = SessionManager.getInstance().getCurrentUser();
+                if (user != null) {
+                    user.getPercDivider().deductExpense(category, amount);
                     IncomeActivity.saveDivider(user.getPercDivider());
                 }
             }

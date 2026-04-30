@@ -1,6 +1,7 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -106,17 +107,20 @@ public class ChartsFragment extends Fragment {
             Button btnSave = editView.findViewById(R.id.btnSave);
 
             Set<Integer> editedIndices = new HashSet<>();
+            Set<String> removedCategories = new HashSet<>();
 
-            List<Category> existing = divider.getAllDividers();
+            List<Category> existing = new ArrayList<>(divider.getAllDividers());
 
             for (int i = 0; i < existing.size(); i++) {
                 Category c = existing.get(i);
                 final int index = i;
+                final String categoryName = c.getCategory();
 
                 LinearLayout row = new LinearLayout(requireContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setPadding(0, 8, 0, 8);
                 row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setTag(categoryName);
 
                 Spinner spinner = new Spinner(requireContext());
                 LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
@@ -146,8 +150,22 @@ public class ChartsFragment extends Fragment {
                     if (!hasFocus) editedIndices.add(index);
                 });
 
+                Button btnRemove = new Button(requireContext());
+                btnRemove.setText("✕");
+                btnRemove.setTextColor(android.graphics.Color.parseColor("#FF5555"));
+                btnRemove.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                btnRemove.setLayoutParams(removeParams);
+                btnRemove.setOnClickListener(vr -> {
+                    row.setVisibility(View.GONE);
+                    removedCategories.add(categoryName);
+                    editedIndices.remove(index);
+                });
+
                 row.addView(spinner);
                 row.addView(percent);
+                row.addView(btnRemove);
                 editContainer.addView(row);
             }
 
@@ -165,9 +183,19 @@ public class ChartsFragment extends Fragment {
 
                 int childCount = editContainer.getChildCount();
                 List<Category> updated = new java.util.ArrayList<>();
+                List<Integer> activeIndices = new java.util.ArrayList<>();
+
+                double deletedBalance = 0;
+                for (Category c : existing) {
+                    if (removedCategories.contains(c.getCategory())) {
+                        deletedBalance += c.getBalance();
+                    }
+                }
 
                 for (int i = 0; i < childCount; i++) {
                     LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
+                    if (row.getVisibility() == View.GONE) continue;
+
                     Spinner spinner = (Spinner) row.getChildAt(0);
                     EditText percent = (EditText) row.getChildAt(1);
 
@@ -185,25 +213,44 @@ public class ChartsFragment extends Fragment {
                         updated_c.setLastAllocation(existing.get(i).getLastAllocation());
                     }
                     updated.add(updated_c);
+                    activeIndices.add(i);
+                }
+                divider.setAllDividers(updated);
+                Set<Integer> remappedEdited = new HashSet<>();
+                for (int i = 0; i < activeIndices.size(); i++) {
+                    if (editedIndices.contains(activeIndices.get(i))) {
+                        remappedEdited.add(i);
+                    }
                 }
 
-                divider.setAllDividers(updated);
-
-                if (editedIndices.isEmpty()) {
+                if (remappedEdited.isEmpty() || !removedCategories.isEmpty()) {
                     divider.rebalanceAll();
                 } else {
-                    List<Category> anchors = new ArrayList<>();
-                    for (int idx : editedIndices) {
+                    List<Category> editedPools = new ArrayList<>();
+                    for (int idx : remappedEdited) {
                         if (idx < divider.getAllDividers().size()) {
-                            anchors.add(divider.getAllDividers().get(idx));
+                            editedPools.add(divider.getAllDividers().get(idx));
                         }
                     }
-                    divider.rebalanceExceptMultiple(anchors);
+                    divider.rebalanceExceptMultiple(editedPools);
                 }
+                if (deletedBalance > 0) {
+                    divider.redistributeDeletedBalance(deletedBalance);
+                }
+                for (String removedName : removedCategories) {
+                    db.collection("users")
+                            .document(uid)
+                            .collection("percDividers")
+                            .document(removedName)
+                            .delete();
+                }
+                List<Category> pools = new ArrayList<>(divider.getAllDividers());
 
-                for (Category c : divider.getAllDividers()) {
+                for (Category c : pools) {
                     Map<String, Object> update = new HashMap<>();
                     update.put("percentage", c.getPercentage());
+                    update.put("balance", c.getBalance());
+                    update.put("lastAllocation", c.getLastAllocation());
                     db.collection("users")
                             .document(uid)
                             .collection("percDividers")
