@@ -1,7 +1,10 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
@@ -18,6 +21,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 import androidx.annotation.NonNull;
@@ -83,6 +87,11 @@ public class HomeFragment extends Fragment {
         loadPoolsFromFirebase(view);
         loadRecentTransactions(view);
 
+        Button btnEditAll = view.findViewById(R.id.btnEditAll);
+        Button btnAddCategory = view.findViewById(R.id.btnAddCategory);
+        if (btnEditAll != null) btnEditAll.setOnClickListener(v -> showEditDialog(view));
+        if (btnAddCategory != null) btnAddCategory.setOnClickListener(v -> showAddDialog(view));
+
         Button btnQuickIncome = view.findViewById(R.id.btnQuickIncome);
         Button btnQuickExpense = view.findViewById(R.id.btnQuickExpense);
         ImageButton btnLogout = view.findViewById(R.id.btnLogout);
@@ -142,10 +151,13 @@ public class HomeFragment extends Fragment {
                         String name = doc.getId();
                         Double percent = doc.getDouble("percentage");
                         Double balance = doc.getDouble("balance");
+                        Double last = doc.getDouble("lastAllocation");
                         if (percent == null) percent = 0.0;
                         if (balance == null) balance = 0.0;
+                        if (last == null) last = 0.0;
                         Category c = new Category(name, percent);
                         c.setBalance(balance);
+                        c.setLastAllocation(last);
                         list.add(c);
                     }
                     User user = SessionManager.getInstance().getCurrentUser();
@@ -157,64 +169,34 @@ public class HomeFragment extends Fragment {
     }
 
     private void showTransactionDialog(boolean isIncome) {
-        LinearLayout layout = new LinearLayout(requireContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        layout.setPadding(pad, pad, pad, pad);
+        int layout = isIncome ? R.layout.dialog_add_income : R.layout.dialog_quick_expense;
+        View dialogView = LayoutInflater.from(requireContext()).inflate(layout, null);
 
-        EditText etAmount = new EditText(requireContext());
-        etAmount.setHint("Amount (€)");
-        etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        layout.addView(etAmount, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        EditText etCategory = null;
+        EditText etAmount = dialogView.findViewById(R.id.etAmount);
+        EditText etCategory = isIncome ? dialogView.findViewById(R.id.etCategory) : null;
         Spinner spCategory = null;
 
-        if (isIncome) {
-            etCategory = new EditText(requireContext());
-            etCategory.setHint("Category (optional)");
-            LinearLayout.LayoutParams catParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            catParams.topMargin = dp(8);
-            layout.addView(etCategory, catParams);
-        } else {
+        if (!isIncome) {
+            spCategory = dialogView.findViewById(R.id.spCategory);
             User user = SessionManager.getInstance().getCurrentUser();
-            List<String> poolNames = new java.util.ArrayList<>();
+            List<String> poolNames = new ArrayList<>();
             if (user != null) {
                 for (Category c : user.getPercDivider().getAllDividers()) {
                     poolNames.add(c.getCategory());
                 }
             }
-            spCategory = new Spinner(requireContext());
-            spCategory.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
-                    android.graphics.Color.parseColor("#2A2A2C")));
-            ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
                     requireContext(), R.layout.spinner_item_white, poolNames);
-            categoryAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
-            spCategory.setAdapter(categoryAdapter);
-            LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            spinnerParams.topMargin = dp(8);
-            layout.addView(spCategory, spinnerParams);
+            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            spCategory.setAdapter(adapter);
         }
 
-        Button btnConfirm = new Button(requireContext());
-        btnConfirm.setText(isIncome ? "Add Income" : "Add Expense");
-        btnConfirm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
-                Color.parseColor(isIncome ? "#2E7D5E" : "#8B3A2A")));
-        btnConfirm.setTextColor(Color.WHITE);
-        LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnParams.topMargin = dp(12);
-        layout.addView(btnConfirm, btnParams);
+        Button btnConfirm = dialogView.findViewById(R.id.btnConfirm);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle(isIncome ? "Add Income" : "Add Expense")
-                .setView(layout)
+                .setView(dialogView)
                 .create();
 
-        final EditText finalEtCategory = etCategory;
         final Spinner finalSpCategory = spCategory;
 
         btnConfirm.setOnClickListener(v -> {
@@ -239,7 +221,7 @@ public class HomeFragment extends Fragment {
             String type = isIncome ? "Income" : "Expense";
 
             if (isIncome) {
-                category = finalEtCategory.getText().toString().trim();
+                category = etCategory != null ? etCategory.getText().toString().trim() : "";
                 if (category.isEmpty()) category = "General";
                 User user = SessionManager.getInstance().getCurrentUser();
                 if (user != null) {
@@ -249,7 +231,7 @@ public class HomeFragment extends Fragment {
             } else {
                 if (finalSpCategory == null || finalSpCategory.getSelectedItem() == null) {
                     Toast.makeText(requireContext(),
-                            "No categories available. Please set up your income pools first.",
+                            "No pools available. Add a pool first.",
                             Toast.LENGTH_LONG).show();
                     return;
                 }
@@ -297,46 +279,290 @@ public class HomeFragment extends Fragment {
     private void renderPools(View view, User currentUser) {
         LinearLayout poolsContainer = view.findViewById(R.id.poolsContainer);
         TextView tvNoPools = view.findViewById(R.id.tvNoPools);
+        if (poolsContainer == null) return;
         poolsContainer.removeAllViews();
-
-        if (currentUser == null) {
-            renderUpcomingBills(view, null);
-            return;
-        }
-
-        SmartPercentageDivider divider = currentUser.getPercDivider();
-        List<Category> pools = divider.getAllDividers();
 
         renderSavings(view, currentUser);
         renderUpcomingBills(view, currentUser);
 
+        if (currentUser == null) return;
+
+        SmartPercentageDivider divider = currentUser.getPercDivider();
+        List<Category> pools = divider.getAllDividers();
+
         if (pools.isEmpty()) {
-            tvNoPools.setVisibility(View.VISIBLE);
+            if (tvNoPools != null) tvNoPools.setVisibility(View.VISIBLE);
             return;
         }
+        if (tvNoPools != null) tvNoPools.setVisibility(View.GONE);
 
-        tvNoPools.setVisibility(View.GONE);
-        for (Category c : pools) {
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, 8, 0, 8);
+        for (int idx = 0; idx < pools.size(); idx++) {
+            Category c = pools.get(idx);
+
+            LinearLayout outer = new LinearLayout(requireContext());
+            outer.setOrientation(LinearLayout.VERTICAL);
+            outer.setPadding(0, dp(8), 0, dp(8));
+
+            // Name + % pill row
+            LinearLayout topRow = new LinearLayout(requireContext());
+            topRow.setOrientation(LinearLayout.HORIZONTAL);
+            topRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
             TextView tvName = new TextView(requireContext());
             tvName.setText(c.getCategory());
-            tvName.setTextColor(Color.parseColor("#FFFFFF"));
+            tvName.setTextColor(Color.WHITE);
             tvName.setTextSize(15);
-            tvName.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+            tvName.setTypeface(null, Typeface.BOLD);
+            tvName.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            TextView tvBalance = new TextView(requireContext());
-            tvBalance.setText(String.format("€%.2f  (%.0f%%)", c.getBalance(), c.getPercentage()));
-            tvBalance.setTextColor(Color.parseColor("#4DB6AC"));
-            tvBalance.setTextSize(15);
+            TextView tvPill = new TextView(requireContext());
+            tvPill.setText(String.format(Locale.US, "%.0f%%", c.getPercentage()));
+            tvPill.setTextColor(Color.WHITE);
+            tvPill.setTextSize(12);
+            tvPill.setPadding(dp(8), dp(2), dp(8), dp(2));
+            GradientDrawable pillBg = new GradientDrawable();
+            pillBg.setColor(Color.parseColor("#333336"));
+            pillBg.setCornerRadius(dp(12));
+            tvPill.setBackground(pillBg);
 
-            row.addView(tvName);
-            row.addView(tvBalance);
-            poolsContainer.addView(row);
+            topRow.addView(tvName);
+            topRow.addView(tvPill);
+
+            // Balance
+            TextView tvBal = new TextView(requireContext());
+            tvBal.setText(String.format(Locale.US, "€%.2f", c.getBalance()));
+            tvBal.setTextColor(Color.parseColor("#4DB6AC"));
+            tvBal.setTextSize(14);
+            tvBal.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams balParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            balParams.topMargin = dp(4);
+            tvBal.setLayoutParams(balParams);
+
+            // Progress bar
+            ProgressBar pb = new ProgressBar(requireContext(), null, android.R.attr.progressBarStyleHorizontal);
+            pb.setMax(100);
+            pb.setProgress((int) c.getPercentage());
+            pb.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#534AB7")));
+            pb.setProgressBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#333336")));
+            LinearLayout.LayoutParams pbParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(4));
+            pbParams.topMargin = dp(6);
+            pb.setLayoutParams(pbParams);
+
+            // Last allocated subtitle
+            TextView tvLast = new TextView(requireContext());
+            tvLast.setText(String.format(Locale.US, "Last allocated: €%.2f", c.getLastAllocation()));
+            tvLast.setTextColor(Color.parseColor("#777777"));
+            tvLast.setTextSize(12);
+            LinearLayout.LayoutParams lastParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lastParams.topMargin = dp(2);
+            tvLast.setLayoutParams(lastParams);
+
+            outer.addView(topRow);
+            outer.addView(tvBal);
+            outer.addView(pb);
+            outer.addView(tvLast);
+            poolsContainer.addView(outer);
+
+            if (idx < pools.size() - 1) {
+                View div = new View(requireContext());
+                div.setBackgroundColor(Color.parseColor("#2A2A2A"));
+                div.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
+                poolsContainer.addView(div);
+            }
         }
+    }
+
+    private void showEditDialog(View rootView) {
+        User user = SessionManager.getInstance().getCurrentUser();
+        if (user == null) return;
+        SmartPercentageDivider divider = user.getPercDivider();
+
+        View editView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_edit_divider, null);
+        LinearLayout editContainer = editView.findViewById(R.id.editContainer);
+        Button btnSave = editView.findViewById(R.id.btnSave);
+
+        List<Category> removed = new ArrayList<>();
+
+        for (Category c : new ArrayList<>(divider.getAllDividers())) {
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackgroundColor(Color.parseColor("#1C1C1E"));
+            row.setPadding(dp(12), dp(10), dp(4), dp(10));
+            row.setTag(c);
+
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowParams.topMargin = dp(4);
+            row.setLayoutParams(rowParams);
+
+            TextView tvCat = new TextView(requireContext());
+            tvCat.setText(c.getCategory());
+            tvCat.setTextColor(Color.WHITE);
+            tvCat.setTextSize(14);
+            tvCat.setTypeface(null, Typeface.BOLD);
+            tvCat.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f));
+
+            // % input with dark background
+            LinearLayout pctWrapper = new LinearLayout(requireContext());
+            pctWrapper.setOrientation(LinearLayout.HORIZONTAL);
+            pctWrapper.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            pctWrapper.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            EditText etPct = new EditText(requireContext());
+            etPct.setText(String.format(Locale.US, "%.0f", c.getPercentage()));
+            etPct.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            etPct.setBackground(null);
+            etPct.setTextColor(Color.parseColor("#534AB7"));
+            etPct.setTextSize(15);
+            etPct.setTypeface(null, Typeface.BOLD);
+            etPct.setGravity(android.view.Gravity.END);
+            etPct.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView tvPct = new TextView(requireContext());
+            tvPct.setText("%");
+            tvPct.setTextColor(Color.parseColor("#534AB7"));
+            tvPct.setTextSize(14);
+            tvPct.setPadding(dp(2), 0, 0, 0);
+
+            pctWrapper.addView(etPct);
+            pctWrapper.addView(tvPct);
+
+            Button btnRemove = new Button(requireContext());
+            btnRemove.setText("×");
+            btnRemove.setTextColor(Color.parseColor("#FF6B6B"));
+            btnRemove.setTextSize(16);
+            btnRemove.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
+            btnRemove.setLayoutParams(new LinearLayout.LayoutParams(dp(44), dp(44)));
+
+            btnRemove.setOnClickListener(v -> {
+                removed.add((Category) row.getTag());
+                editContainer.removeView(row);
+            });
+
+            row.addView(tvCat);
+            row.addView(pctWrapper);
+            row.addView(btnRemove);
+            editContainer.addView(row);
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(editView)
+                .create();
+
+        btnSave.setOnClickListener(v -> {
+            int count = editContainer.getChildCount();
+            List<Category> updated = new ArrayList<>();
+
+            for (int i = 0; i < count; i++) {
+                LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
+                Category original = (Category) row.getTag();
+                LinearLayout pctWrapper = (LinearLayout) row.getChildAt(1);
+                EditText etPct = (EditText) pctWrapper.getChildAt(0);
+
+                String pctStr = etPct.getText().toString().trim();
+                if (pctStr.isEmpty()) {
+                    Toast.makeText(requireContext(), "Fill all percentages", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                double pct;
+                try { pct = Double.parseDouble(pctStr); } catch (NumberFormatException e) {
+                    Toast.makeText(requireContext(), "Invalid percentage", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                original.setPercentage(pct);
+                updated.add(original);
+            }
+
+            divider.setAllDividers(updated);
+            divider.rebalanceAll();
+
+            double deletedBalance = 0;
+            for (Category del : removed) deletedBalance += del.getBalance();
+            if (deletedBalance > 0) divider.redistributeDeletedBalance(deletedBalance);
+
+            FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (firebaseUser != null) {
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                for (Category del : removed) {
+                    db.collection("users").document(firebaseUser.getUid())
+                            .collection("percDividers").document(del.getCategory()).delete();
+                }
+            }
+
+            IncomeActivity.saveDivider(divider);
+            dialog.dismiss();
+            renderPools(rootView, user);
+        });
+
+        dialog.show();
+    }
+
+    private void showAddDialog(View rootView) {
+        User user = SessionManager.getInstance().getCurrentUser();
+        if (user == null) return;
+        SmartPercentageDivider divider = user.getPercDivider();
+
+        View addView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_divider, null);
+        Spinner spCategory = addView.findViewById(R.id.spCategory);
+        EditText etPercent = addView.findViewById(R.id.etPercent);
+        Button btnAdd = addView.findViewById(R.id.btnAdd);
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+        spCategory.setAdapter(adapter);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(addView)
+                .create();
+
+        btnAdd.setOnClickListener(v -> {
+            String name = spCategory.getSelectedItem().toString();
+            String pctStr = etPercent.getText().toString().trim();
+
+            if (pctStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Enter a percentage", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            double pct;
+            try { pct = Double.parseDouble(pctStr); } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid percentage", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (pct <= 0 || pct > 100) {
+                Toast.makeText(requireContext(), "Enter 1–100%", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            for (Category c : divider.getAllDividers()) {
+                if (c.getCategory().equals(name)) {
+                    Toast.makeText(requireContext(), "Category already exists", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (firebaseUser == null) return;
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("percentage", pct);
+            data.put("balance", 0.0);
+            data.put("lastAllocation", 0.0);
+            FirebaseFirestore.getInstance()
+                    .collection("users").document(firebaseUser.getUid())
+                    .collection("percDividers").document(name)
+                    .set(data);
+
+            divider.addDivider(name, pct);
+            IncomeActivity.saveDivider(divider);
+            dialog.dismiss();
+            renderPools(rootView, user);
+        });
+
+        dialog.show();
     }
 
     private void renderSavings(View view, User user) {
@@ -401,9 +627,17 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        java.util.Map<String,Integer> freqDays = new java.util.HashMap<>();
+        freqDays.put("Daily", 1);
+        freqDays.put("Weekly", 7);
+        freqDays.put("Monthly", 30);
+        freqDays.put("Yearly", 365);
+
         java.util.List<FixedExpense> upcoming = new java.util.ArrayList<>();
         for (FixedExpense e : user.getExpenseList().getAllExpenses()) {
-            if (e.getLastPayment() != null && e.getDaysUntilNextPayment() <= 7) {
+            int cycleDays = freqDays.getOrDefault(e.getFrequency(), 30);
+            int threshold = Math.min(7, cycleDays - 1);
+            if (e.getLastPayment() != null && e.getDaysUntilNextPayment() <= threshold) {
                 upcoming.add(e);
             }
         }

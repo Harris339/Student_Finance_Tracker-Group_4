@@ -1,19 +1,13 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.os.Bundle;
-import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -25,14 +19,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class ChartActivity extends AppCompatActivity {
 
-    Button previousBtn, nextBtn, backBtn, editBtn, addBtn;
+    Button previousBtn, nextBtn, backBtn;
     TextView tvMonthLabel;
     WebView barChartView, pieChartView, lineChartView;
     FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -40,7 +32,6 @@ public class ChartActivity extends AppCompatActivity {
     User sessionUser = SessionManager.getInstance().getCurrentUser();
     SmartPercentageDivider divider = sessionUser.getPercDivider();
     FirebaseFirestore db = FirebaseFirestore.getInstance();
-    LinearLayout categoryContainer;
 
     int currentOffset = 0;
 
@@ -49,22 +40,18 @@ public class ChartActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chart);
 
-        previousBtn       = (Button)   findViewById(R.id.previousBtn);
-        nextBtn           = (Button)   findViewById(R.id.nextBtn);
-        backBtn           = (Button)   findViewById(R.id.backBtn);
-        editBtn           = (Button)   findViewById(R.id.btnEditAll);
-        addBtn            = (Button)   findViewById(R.id.btnAddCategory);
-        tvMonthLabel      = (TextView) findViewById(R.id.tvMonthLabel);
-        barChartView      = (WebView)  findViewById(R.id.barChartView);
-        pieChartView      = (WebView)  findViewById(R.id.pieChartView);
-        lineChartView     = (WebView)  findViewById(R.id.lineChartView);
-        categoryContainer = findViewById(R.id.categoryContainer);
+        previousBtn  = (Button)   findViewById(R.id.previousBtn);
+        nextBtn      = (Button)   findViewById(R.id.nextBtn);
+        backBtn      = (Button)   findViewById(R.id.backBtn);
+        tvMonthLabel = (TextView) findViewById(R.id.tvMonthLabel);
+        barChartView = (WebView)  findViewById(R.id.barChartView);
+        pieChartView = (WebView)  findViewById(R.id.pieChartView);
+        lineChartView = (WebView) findViewById(R.id.lineChartView);
 
         setupWebView(barChartView);
         setupWebView(pieChartView);
         setupWebView(lineChartView);
 
-        // Only call loadDividerFromFirebase() — it calls loadChartData() once data is ready
         loadDividerFromFirebase();
 
         previousBtn.setOnClickListener(v -> {
@@ -80,137 +67,6 @@ public class ChartActivity extends AppCompatActivity {
         });
 
         backBtn.setOnClickListener(v -> finish());
-
-        editBtn.setOnClickListener(v -> {
-            View editView = getLayoutInflater().inflate(R.layout.dialog_edit_divider, null);
-
-            LinearLayout editContainer = editView.findViewById(R.id.editContainer);
-            Button btnSave = editView.findViewById(R.id.btnSave);
-
-            for (Category c : divider.getAllDividers()) {
-                LinearLayout row = new LinearLayout(this);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setPadding(0, 8, 0, 8);
-
-                Spinner spinner = new Spinner(this);
-                ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                        this, R.array.expense_categories, android.R.layout.simple_spinner_item);
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                spinner.setAdapter(adapter);
-                spinner.setSelection(adapter.getPosition(c.getCategory()));
-
-                EditText percent = new EditText(this);
-                percent.setLayoutParams(new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-                percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                        | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.valueOf(c.getPercentage()));
-
-                row.addView(spinner);
-                row.addView(percent);
-                editContainer.addView(row);
-            }
-
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle("Edit Categories")
-                    .setView(editView)
-                    .create();
-
-            btnSave.setOnClickListener(v2 -> {
-                int childCount = editContainer.getChildCount();
-                List<Category> updated = new ArrayList<>();
-
-                for (int i = 0; i < childCount; i++) {
-                    LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
-                    Spinner spinner  = (Spinner)      row.getChildAt(0);
-                    EditText percent = (EditText)      row.getChildAt(1);
-
-                    String category = spinner.getSelectedItem().toString();
-                    String valueStr = percent.getText().toString().trim();
-                    if (valueStr.isEmpty()) {
-                        Toast.makeText(this, "Fill all percentages", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    double value = Double.parseDouble(valueStr);
-                    updated.add(new Category(category, value));
-                }
-
-                divider.setAllDividers(updated);
-                loadDividerFromFirebase();
-                Toast.makeText(this, "Updated", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            });
-
-            dialog.show();
-        });
-
-        addBtn.setOnClickListener(v -> {
-            View addView = getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
-
-            Spinner  spCategory = addView.findViewById(R.id.spCategory);
-            EditText etPercent  = addView.findViewById(R.id.etPercent);
-
-            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                    this, R.array.expense_categories, android.R.layout.simple_spinner_item);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spCategory.setAdapter(adapter);
-
-            Button btnAdd = addView.findViewById(R.id.btnAdd);
-
-            AlertDialog dialog = new AlertDialog.Builder(this)
-                    .setTitle("Add Category")
-                    .setView(addView)
-                    .create();
-
-            btnAdd.setOnClickListener(v2 -> {
-                String name       = spCategory.getSelectedItem().toString();
-                String percentStr = etPercent.getText().toString().trim();
-
-                if (name.isEmpty() || percentStr.isEmpty()) {
-                    Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                double percent;
-                try {
-                    percent = Double.parseDouble(percentStr);
-                } catch (Exception e) {
-                    Toast.makeText(this, "Invalid percentage", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (percent <= 0 || percent > 100) {
-                    Toast.makeText(this, "Enter 1–100%", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                for (Category c : divider.getAllDividers()) {
-                    if (c.getCategory().equals(name)) {
-                        Toast.makeText(this, "Category already exists", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                }
-
-                Map<String, Object> category = new HashMap<>();
-                category.put("percentage", percent);
-                category.put("balance", 0);
-                category.put("lastAllocation", 0);
-
-                db.collection("users")
-                        .document(user.getUid())
-                        .collection("percDividers")
-                        .document(name)
-                        .set(category);
-
-                divider.addDivider(name, percent);
-                loadDividerFromFirebase();
-                Toast.makeText(this, "Category Added", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            });
-
-            dialog.show();
-        });
     }
 
     private void loadDividerFromFirebase() {
@@ -238,24 +94,8 @@ public class ChartActivity extends AppCompatActivity {
                     }
 
                     divider.setAllDividers(list);
-                    renderCategories();
-                    // loadChartData() called here ONLY — after divider is populated
                     loadChartData();
                 });
-    }
-
-    private void renderCategories() {
-        categoryContainer.removeAllViews();
-        for (Category c : divider.getAllDividers()) {
-            TextView tv = new TextView(this);
-            tv.setText(c.getCategory() + " - "
-                    + String.format("%.0f%%", c.getPercentage())
-                    + " | Balance: €" + String.format("%.2f", c.getBalance())
-                    + " | Last: €" + String.format("%.2f", c.getLastAllocation()));
-            tv.setTextSize(16);
-            tv.setPadding(8, 8, 8, 8);
-            categoryContainer.addView(tv);
-        }
     }
 
     private void setupWebView(WebView wv) {
@@ -292,7 +132,6 @@ public class ChartActivity extends AppCompatActivity {
         float[] expenseByWeek    = new float[weeks];
         float[] incomeByWeekLine = new float[weeks];
 
-        // Pie chart reads directly from SmartPercentage balances
         List<Category> cats = new ArrayList<>(divider.getAllDividers());
         float[] pie = new float[cats.size()];
         for (int i = 0; i < cats.size(); i++) {
@@ -303,7 +142,6 @@ public class ChartActivity extends AppCompatActivity {
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
-        // Bar and Line charts read from transactions
         FirebaseFirestore.getInstance()
                 .collection("users").document(firebaseUser.getUid())
                 .collection("transactions")

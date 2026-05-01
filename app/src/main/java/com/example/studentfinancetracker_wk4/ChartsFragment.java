@@ -7,21 +7,12 @@ import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.content.res.ColorStateList;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -33,19 +24,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 public class ChartsFragment extends Fragment {
 
-    private Button previousBtn, nextBtn, editBtn, addBtn;
+    private Button previousBtn, nextBtn;
     private TextView tvMonthLabel;
     private WebView barChartView, pieChartView, lineChartView;
-    private LinearLayout categoryContainer;
 
     private User user;
     private SmartPercentageDivider divider;
@@ -70,15 +56,12 @@ public class ChartsFragment extends Fragment {
         if (user == null) return;
         divider = user.getPercDivider();
 
-        previousBtn       = view.findViewById(R.id.previousBtn);
-        nextBtn           = view.findViewById(R.id.nextBtn);
-        editBtn           = view.findViewById(R.id.btnEditAll);
-        addBtn            = view.findViewById(R.id.btnAddCategory);
-        tvMonthLabel      = view.findViewById(R.id.tvMonthLabel);
-        barChartView      = view.findViewById(R.id.barChartView);
-        pieChartView      = view.findViewById(R.id.pieChartView);
-        lineChartView     = view.findViewById(R.id.lineChartView);
-        categoryContainer = view.findViewById(R.id.categoryContainer);
+        previousBtn  = view.findViewById(R.id.previousBtn);
+        nextBtn      = view.findViewById(R.id.nextBtn);
+        tvMonthLabel = view.findViewById(R.id.tvMonthLabel);
+        barChartView = view.findViewById(R.id.barChartView);
+        pieChartView = view.findViewById(R.id.pieChartView);
+        lineChartView = view.findViewById(R.id.lineChartView);
 
         Button backBtn = view.findViewById(R.id.backBtn);
         if (backBtn != null) backBtn.setVisibility(View.GONE);
@@ -100,290 +83,6 @@ public class ChartsFragment extends Fragment {
                 currentOffset++;
                 loadChartData();
             }
-        });
-
-        editBtn.setOnClickListener(v -> {
-            View editView = LayoutInflater.from(requireContext())
-                    .inflate(R.layout.dialog_edit_divider, null);
-
-            LinearLayout editContainer = editView.findViewById(R.id.editContainer);
-            Button btnSave = editView.findViewById(R.id.btnSave);
-
-            Set<Integer> editedIndices = new HashSet<>();
-            Set<String> removedCategories = new HashSet<>();
-
-            List<Category> existing = new ArrayList<>(divider.getAllDividers());
-
-            for (int i = 0; i < existing.size(); i++) {
-                Category c = existing.get(i);
-                final int index = i;
-                final String categoryName = c.getCategory();
-
-                LinearLayout row = new LinearLayout(requireContext());
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setPadding(0, 8, 0, 8);
-                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-                row.setTag(categoryName);
-
-                Spinner spinner = new Spinner(requireContext());
-                LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 2);
-                spinner.setLayoutParams(spinnerParams);
-                spinner.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
-                        android.graphics.Color.parseColor("#2A2A2C")));
-                ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                        requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
-                adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
-                spinner.setAdapter(adapter);
-                spinner.setSelection(adapter.getPosition(c.getCategory()));
-
-                EditText percent = new EditText(requireContext());
-                LinearLayout.LayoutParams percentParams = new LinearLayout.LayoutParams(
-                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-                percentParams.setMarginStart(8);
-                percent.setLayoutParams(percentParams);
-                percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
-                        | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.format(Locale.US, "%.0f", c.getPercentage()));
-                percent.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
-                percent.setHintTextColor(android.graphics.Color.parseColor("#888888"));
-                percent.setHint("%");
-
-                percent.setOnFocusChangeListener((focusView, hasFocus) -> {
-                    if (!hasFocus) editedIndices.add(index);
-                });
-
-                Button btnRemove = new Button(requireContext());
-                btnRemove.setText("✕");
-                btnRemove.setTextColor(android.graphics.Color.parseColor("#FF5555"));
-                btnRemove.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-                LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                btnRemove.setLayoutParams(removeParams);
-                btnRemove.setOnClickListener(vr -> {
-                    int visibleCount = 0;
-                    for (int j = 0; j < editContainer.getChildCount(); j++) {
-                        if (editContainer.getChildAt(j).getVisibility() == View.VISIBLE) {
-                            visibleCount++;
-                        }
-                    }
-                    if (visibleCount <= 1) {
-                        Toast.makeText(requireContext(),
-                                "You must have at least one category",
-                                Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    row.setVisibility(View.GONE);
-                    removedCategories.add(categoryName);
-                    editedIndices.remove(index);
-                });
-
-                row.addView(spinner);
-                row.addView(percent);
-                row.addView(btnRemove);
-                editContainer.addView(row);
-            }
-
-            AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                    .setView(editView)
-                    .create();
-
-            btnSave.setOnClickListener(v2 -> {
-                View focused = dialog.getCurrentFocus();
-                if (focused != null) focused.clearFocus();
-
-                FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-                if (firebaseUser == null) return;
-                String uid = firebaseUser.getUid();
-
-                int childCount = editContainer.getChildCount();
-                List<Category> updated = new ArrayList<>();
-                List<Integer> activeIndices = new ArrayList<>();
-
-                double deletedBalance = 0;
-                for (Category c : existing) {
-                    if (removedCategories.contains(c.getCategory())) {
-                        deletedBalance += c.getBalance();
-                    }
-                }
-
-                for (int i = 0; i < childCount; i++) {
-                    LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
-                    if (row.getVisibility() == View.GONE) continue;
-
-                    Spinner spinner = (Spinner) row.getChildAt(0);
-                    EditText percent = (EditText) row.getChildAt(1);
-
-                    String category = spinner.getSelectedItem().toString();
-                    String valueStr = percent.getText().toString().trim();
-                    if (valueStr.isEmpty()) {
-                        Toast.makeText(requireContext(), "Fill all percentages", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    double value = Double.parseDouble(valueStr);
-                    Category updated_c = new Category(category, value);
-                    if (i < existing.size()) {
-                        updated_c.setBalance(existing.get(i).getBalance());
-                        updated_c.setLastAllocation(existing.get(i).getLastAllocation());
-                    }
-                    updated.add(updated_c);
-                    activeIndices.add(i);
-                }
-
-                divider.setAllDividers(updated);
-
-                Set<Integer> remappedEdited = new HashSet<>();
-                for (int i = 0; i < activeIndices.size(); i++) {
-                    if (editedIndices.contains(activeIndices.get(i))) {
-                        remappedEdited.add(i);
-                    }
-                }
-
-                if (remappedEdited.isEmpty() || !removedCategories.isEmpty()) {
-                    divider.rebalanceAll();
-                } else {
-                    List<Category> editedPools = new ArrayList<>();
-                    for (int idx : remappedEdited) {
-                        if (idx < divider.getAllDividers().size()) {
-                            editedPools.add(divider.getAllDividers().get(idx));
-                        }
-                    }
-                    divider.rebalanceExceptMultiple(editedPools);
-                }
-
-                if (deletedBalance > 0) {
-                    divider.redistributeDeletedBalance(deletedBalance);
-                }
-                // Check if any trackers are linked to the removed pools
-                List<String> affectedTrackers = new ArrayList<>();
-                User currentUser = SessionManager.getInstance().getCurrentUser();
-                if (currentUser != null && !removedCategories.isEmpty()) {
-                    for (FixedExpense expense : currentUser.getExpenseList().getAllExpenses()) {
-                        if (removedCategories.contains(expense.getCategory())) {
-                            affectedTrackers.add(expense.getTitle() + " (" + expense.getCategory() + ")");
-                        }
-                    }
-                }
-
-                Runnable applyChanges = () -> {
-                    for (String removedName : removedCategories) {
-                        db.collection("users")
-                                .document(uid)
-                                .collection("percDividers")
-                                .document(removedName)
-                                .delete();
-                    }
-                    List<Category> pools = new ArrayList<>(divider.getAllDividers());
-                    for (Category c : pools) {
-                        Map<String, Object> update = new HashMap<>();
-                        update.put("percentage", c.getPercentage());
-                        update.put("balance", c.getBalance());
-                        update.put("lastAllocation", c.getLastAllocation());
-                        db.collection("users")
-                                .document(uid)
-                                .collection("percDividers")
-                                .document(c.getCategory())
-                                .update(update);
-                    }
-                    IncomeActivity.saveCategories(divider);
-                    renderCategories();
-                    loadChartData();
-                    Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                };
-
-                if (!affectedTrackers.isEmpty()) {
-                    StringBuilder msg = new StringBuilder(
-                            "The following trackers are linked to a pool being removed and will lose pool deduction:\n\n");
-                    for (String name : affectedTrackers) msg.append("• ").append(name).append("\n");
-                    msg.append("\nProceed anyway?");
-                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                            .setTitle("Linked trackers affected")
-                            .setMessage(msg.toString())
-                            .setPositiveButton("Remove anyway", (d, w) -> applyChanges.run())
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                } else {
-                    applyChanges.run();
-                }
-            });
-
-            dialog.show();
-        });
-
-        addBtn.setOnClickListener(v -> {
-            View addView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
-
-            Spinner spCategory = addView.findViewById(R.id.spCategory);
-            EditText etPercent = addView.findViewById(R.id.etPercent);
-
-            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                    requireContext(), R.array.expense_categories, R.layout.spinner_item_white);
-            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
-            spCategory.setAdapter(adapter);
-
-            Button btnAdd = addView.findViewById(R.id.btnAdd);
-
-            AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                    .setView(addView)
-                    .create();
-
-            btnAdd.setOnClickListener(v2 -> {
-                FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-                if (firebaseUser == null) return;
-                String uid = firebaseUser.getUid();
-
-                String name = spCategory.getSelectedItem().toString();
-                String percentStr = etPercent.getText().toString().trim();
-
-                if (name.isEmpty() || percentStr.isEmpty()) {
-                    Toast.makeText(requireContext(), "Fill all fields", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                double percent;
-                try {
-                    percent = Double.parseDouble(percentStr);
-                } catch (Exception e) {
-                    Toast.makeText(requireContext(), "Invalid percentage", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (percent <= 0 || percent > 100) {
-                    Toast.makeText(requireContext(), "Enter 1–100%", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                for (Category c : divider.getAllDividers()) {
-                    if (c.getCategory().equals(name)) {
-                        Toast.makeText(requireContext(), "Category already exists", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                }
-
-                divider.addDivider(name, percent);
-
-                for (Category c : divider.getAllDividers()) {
-                    Map<String, Object> data = new HashMap<>();
-                    data.put("percentage", c.getPercentage());
-                    data.put("balance", c.getBalance());
-                    data.put("lastAllocation", c.getLastAllocation());
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(c.getCategory())
-                            .set(data);
-                }
-
-                IncomeActivity.saveCategories(divider);
-                renderCategories();
-                loadChartData();
-                Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            });
-
-            dialog.show();
         });
     }
 
@@ -415,8 +114,6 @@ public class ChartsFragment extends Fragment {
                     }
 
                     divider.setAllDividers(list);
-                    renderCategories();
-                    // loadChartData() called here ONLY — after divider is populated
                     loadChartData();
                 });
     }
@@ -438,103 +135,8 @@ public class ChartsFragment extends Fragment {
             User u = SessionManager.getInstance().getCurrentUser();
             if (u != null) divider = u.getPercDivider();
         }
-        if (divider != null && categoryContainer != null) {
+        if (divider != null) {
             loadDividerFromFirebase();
-        }
-    }
-
-    private void renderCategories() {
-        if (categoryContainer == null) return;
-        categoryContainer.removeAllViews();
-
-        List<Category> cats = divider.getAllDividers();
-        for (int i = 0; i < cats.size(); i++) {
-            Category c = cats.get(i);
-
-            LinearLayout row = new LinearLayout(requireContext());
-            row.setOrientation(LinearLayout.VERTICAL);
-            row.setPadding(0, i == 0 ? 0 : dp(12), 0, dp(12));
-
-            // Top line: name | percentage pill | balance
-            LinearLayout topLine = new LinearLayout(requireContext());
-            topLine.setOrientation(LinearLayout.HORIZONTAL);
-            topLine.setGravity(android.view.Gravity.CENTER_VERTICAL);
-
-            TextView tvName = new TextView(requireContext());
-            tvName.setText(c.getCategory());
-            tvName.setTextSize(15);
-            tvName.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
-            tvName.setTypeface(null, Typeface.BOLD);
-            LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            tvName.setLayoutParams(nameParams);
-
-            GradientDrawable pill = new GradientDrawable();
-            pill.setShape(GradientDrawable.RECTANGLE);
-            pill.setCornerRadius(dp(10));
-            pill.setColor(android.graphics.Color.parseColor("#333336"));
-
-            TextView tvPct = new TextView(requireContext());
-            tvPct.setText(String.format(Locale.US, "%.0f%%", c.getPercentage()));
-            tvPct.setTextSize(12);
-            tvPct.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
-            tvPct.setBackground(pill);
-            tvPct.setPadding(dp(8), dp(3), dp(8), dp(3));
-
-            TextView tvBalance = new TextView(requireContext());
-            tvBalance.setText(String.format(Locale.US, "€%.2f", c.getBalance()));
-            tvBalance.setTextSize(14);
-            tvBalance.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
-            tvBalance.setTypeface(null, Typeface.BOLD);
-            LinearLayout.LayoutParams balParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            balParams.setMarginStart(dp(12));
-            tvBalance.setLayoutParams(balParams);
-
-            topLine.addView(tvName);
-            topLine.addView(tvPct);
-            topLine.addView(tvBalance);
-
-            // Progress bar representing allocation percentage
-            ProgressBar pb = new ProgressBar(requireContext(), null,
-                    android.R.attr.progressBarStyleHorizontal);
-            pb.setMax(100);
-            pb.setProgress((int) c.getPercentage());
-            pb.setProgressTintList(ColorStateList.valueOf(
-                    android.graphics.Color.parseColor("#4DB6AC")));
-            pb.setProgressBackgroundTintList(ColorStateList.valueOf(
-                    android.graphics.Color.parseColor("#3A3A3C")));
-            LinearLayout.LayoutParams pbParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp(4));
-            pbParams.topMargin = dp(8);
-            pb.setLayoutParams(pbParams);
-
-            // Last allocation subtitle
-            TextView tvLast = new TextView(requireContext());
-            tvLast.setText(String.format(Locale.US, "Last allocated: €%.2f", c.getLastAllocation()));
-            tvLast.setTextSize(12);
-            tvLast.setTextColor(android.graphics.Color.parseColor("#777777"));
-            LinearLayout.LayoutParams lastParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lastParams.topMargin = dp(4);
-            tvLast.setLayoutParams(lastParams);
-
-            row.addView(topLine);
-            row.addView(pb);
-            row.addView(tvLast);
-
-            // Thin divider between rows (not after the last one)
-            if (i < cats.size() - 1) {
-                View dividerLine = new View(requireContext());
-                dividerLine.setBackgroundColor(android.graphics.Color.parseColor("#3A3A3C"));
-                LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT, 1);
-                divParams.topMargin = dp(12);
-                dividerLine.setLayoutParams(divParams);
-                row.addView(dividerLine);
-            }
-
-            categoryContainer.addView(row);
         }
     }
 

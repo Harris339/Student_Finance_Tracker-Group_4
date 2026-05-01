@@ -114,12 +114,39 @@
                     android:id="@+id/tvNoPools"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No pools set up yet.\nGo to Charts to add income categories."
+                    android:text="No pools set up yet. Tap Add Pool to get started."
                     android:textColor="#55FFFFFF"
                     android:textSize="14sp"
                     android:gravity="center"
                     android:padding="8dp"
                     android:visibility="visible"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <Button
+                        android:id="@+id/btnEditAll"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Edit Pools"
+                        android:backgroundTint="#3A3A3C"
+                        android:textColor="#AAAAAA"
+                        android:layout_marginEnd="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnAddCategory"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Add Pool"
+                        android:backgroundTint="#1D9E75"
+                        android:textColor="#FFFFFF"/>
+
+                </LinearLayout>
 
             </LinearLayout>
 

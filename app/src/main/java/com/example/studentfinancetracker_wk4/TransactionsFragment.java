@@ -4,7 +4,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -234,35 +233,35 @@ public class TransactionsFragment extends Fragment {
 
 
     private void showTransactionDialog(boolean isIncome) {
-        LinearLayout layout = new LinearLayout(requireContext());
-        layout.setOrientation(LinearLayout.VERTICAL);
-        int pad = dp(16);
-        layout.setPadding(pad, pad, pad, pad);
+        int layoutRes = isIncome ? R.layout.dialog_add_income : R.layout.dialog_quick_expense;
+        View dialogView = LayoutInflater.from(requireContext()).inflate(layoutRes, null);
 
-        EditText etAmount = new EditText(requireContext());
-        etAmount.setHint("Amount (€)");
-        etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        layout.addView(etAmount, matchWidth(LinearLayout.LayoutParams.WRAP_CONTENT));
+        EditText etAmount = dialogView.findViewById(R.id.etAmount);
+        EditText etCategory = isIncome ? dialogView.findViewById(R.id.etCategory) : null;
+        Spinner spCategory = null;
 
-        EditText etCategory = new EditText(requireContext());
-        etCategory.setHint("Category (optional)");
-        LinearLayout.LayoutParams categoryParams = matchWidth(LinearLayout.LayoutParams.WRAP_CONTENT);
-        categoryParams.topMargin = dp(8);
-        layout.addView(etCategory, categoryParams);
+        if (!isIncome) {
+            spCategory = dialogView.findViewById(R.id.spCategory);
+            User user = SessionManager.getInstance().getCurrentUser();
+            List<String> poolNames = new ArrayList<>();
+            if (user != null) {
+                for (Category c : user.getPercDivider().getAllDividers()) {
+                    poolNames.add(c.getCategory());
+                }
+            }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    requireContext(), R.layout.spinner_item_white, poolNames);
+            adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            spCategory.setAdapter(adapter);
+        }
 
-        Button btnConfirm = new Button(requireContext());
-        btnConfirm.setText(isIncome ? "Add Income" : "Add Expense");
-        btnConfirm.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
-                Color.parseColor(isIncome ? "#2E7D5E" : "#8B3A2A")));
-        btnConfirm.setTextColor(Color.WHITE);
-        LinearLayout.LayoutParams btnParams = matchWidth(LinearLayout.LayoutParams.WRAP_CONTENT);
-        btnParams.topMargin = dp(12);
-        layout.addView(btnConfirm, btnParams);
+        Button btnConfirm = dialogView.findViewById(R.id.btnConfirm);
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle(isIncome ? "Add Income" : "Add Expense")
-                .setView(layout)
+                .setView(dialogView)
                 .create();
+
+        final Spinner finalSpCategory = spCategory;
 
         btnConfirm.setOnClickListener(v -> {
             String amountStr = etAmount.getText().toString().trim();
@@ -282,15 +281,28 @@ public class TransactionsFragment extends Fragment {
                 return;
             }
 
-            String category = etCategory.getText().toString().trim();
-            if (category.isEmpty()) category = "General";
+            String category;
             String type = isIncome ? "Income" : "Expense";
 
             if (isIncome) {
+                category = etCategory != null ? etCategory.getText().toString().trim() : "";
+                if (category.isEmpty()) category = "General";
                 User user = SessionManager.getInstance().getCurrentUser();
                 if (user != null) {
                     user.getPercDivider().allocateIncome(amount);
-                    IncomeActivity.saveCategories(user.getPercDivider());
+                    IncomeActivity.saveDivider(user.getPercDivider());
+                }
+            } else {
+                if (finalSpCategory == null || finalSpCategory.getSelectedItem() == null) {
+                    Toast.makeText(requireContext(),
+                            "No pools available. Add a pool first.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                category = finalSpCategory.getSelectedItem().toString();
+                User user = SessionManager.getInstance().getCurrentUser();
+                if (user != null) {
+                    user.getPercDivider().deductExpense(category, amount);
+                    IncomeActivity.saveDivider(user.getPercDivider());
                 }
             }
 
