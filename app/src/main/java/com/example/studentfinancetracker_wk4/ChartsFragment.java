@@ -7,10 +7,14 @@ import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -66,14 +70,14 @@ public class ChartsFragment extends Fragment {
         if (user == null) return;
         divider = user.getPercDivider();
 
-        previousBtn      = view.findViewById(R.id.previousBtn);
-        nextBtn          = view.findViewById(R.id.nextBtn);
-        editBtn          = view.findViewById(R.id.btnEditAll);
-        addBtn           = view.findViewById(R.id.btnAddCategory);
-        tvMonthLabel     = view.findViewById(R.id.tvMonthLabel);
-        barChartView     = view.findViewById(R.id.barChartView);
-        pieChartView     = view.findViewById(R.id.pieChartView);
-        lineChartView    = view.findViewById(R.id.lineChartView);
+        previousBtn       = view.findViewById(R.id.previousBtn);
+        nextBtn           = view.findViewById(R.id.nextBtn);
+        editBtn           = view.findViewById(R.id.btnEditAll);
+        addBtn            = view.findViewById(R.id.btnAddCategory);
+        tvMonthLabel      = view.findViewById(R.id.tvMonthLabel);
+        barChartView      = view.findViewById(R.id.barChartView);
+        pieChartView      = view.findViewById(R.id.pieChartView);
+        lineChartView     = view.findViewById(R.id.lineChartView);
         categoryContainer = view.findViewById(R.id.categoryContainer);
 
         Button backBtn = view.findViewById(R.id.backBtn);
@@ -83,8 +87,8 @@ public class ChartsFragment extends Fragment {
         setupWebView(pieChartView);
         setupWebView(lineChartView);
 
+        // Only call loadDividerFromFirebase() — it calls loadChartData() once data is ready
         loadDividerFromFirebase();
-        loadChartData();
 
         previousBtn.setOnClickListener(v -> {
             currentOffset--;
@@ -106,17 +110,20 @@ public class ChartsFragment extends Fragment {
             Button btnSave = editView.findViewById(R.id.btnSave);
 
             Set<Integer> editedIndices = new HashSet<>();
+            Set<String> removedCategories = new HashSet<>();
 
-            List<Category> existing = divider.getAllDividers();
+            List<Category> existing = new ArrayList<>(divider.getAllDividers());
 
             for (int i = 0; i < existing.size(); i++) {
                 Category c = existing.get(i);
                 final int index = i;
+                final String categoryName = c.getCategory();
 
                 LinearLayout row = new LinearLayout(requireContext());
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setPadding(0, 8, 0, 8);
                 row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setTag(categoryName);
 
                 Spinner spinner = new Spinner(requireContext());
                 LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
@@ -137,7 +144,7 @@ public class ChartsFragment extends Fragment {
                 percent.setLayoutParams(percentParams);
                 percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                         | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.format(java.util.Locale.US, "%.0f", c.getPercentage()));
+                percent.setText(String.format(Locale.US, "%.0f", c.getPercentage()));
                 percent.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
                 percent.setHintTextColor(android.graphics.Color.parseColor("#888888"));
                 percent.setHint("%");
@@ -146,8 +153,34 @@ public class ChartsFragment extends Fragment {
                     if (!hasFocus) editedIndices.add(index);
                 });
 
+                Button btnRemove = new Button(requireContext());
+                btnRemove.setText("✕");
+                btnRemove.setTextColor(android.graphics.Color.parseColor("#FF5555"));
+                btnRemove.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+                LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                btnRemove.setLayoutParams(removeParams);
+                btnRemove.setOnClickListener(vr -> {
+                    int visibleCount = 0;
+                    for (int j = 0; j < editContainer.getChildCount(); j++) {
+                        if (editContainer.getChildAt(j).getVisibility() == View.VISIBLE) {
+                            visibleCount++;
+                        }
+                    }
+                    if (visibleCount <= 1) {
+                        Toast.makeText(requireContext(),
+                                "You must have at least one category",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    row.setVisibility(View.GONE);
+                    removedCategories.add(categoryName);
+                    editedIndices.remove(index);
+                });
+
                 row.addView(spinner);
                 row.addView(percent);
+                row.addView(btnRemove);
                 editContainer.addView(row);
             }
 
@@ -164,10 +197,20 @@ public class ChartsFragment extends Fragment {
                 String uid = firebaseUser.getUid();
 
                 int childCount = editContainer.getChildCount();
-                List<Category> updated = new java.util.ArrayList<>();
+                List<Category> updated = new ArrayList<>();
+                List<Integer> activeIndices = new ArrayList<>();
+
+                double deletedBalance = 0;
+                for (Category c : existing) {
+                    if (removedCategories.contains(c.getCategory())) {
+                        deletedBalance += c.getBalance();
+                    }
+                }
 
                 for (int i = 0; i < childCount; i++) {
                     LinearLayout row = (LinearLayout) editContainer.getChildAt(i);
+                    if (row.getVisibility() == View.GONE) continue;
+
                     Spinner spinner = (Spinner) row.getChildAt(0);
                     EditText percent = (EditText) row.getChildAt(1);
 
@@ -185,36 +228,85 @@ public class ChartsFragment extends Fragment {
                         updated_c.setLastAllocation(existing.get(i).getLastAllocation());
                     }
                     updated.add(updated_c);
+                    activeIndices.add(i);
                 }
 
                 divider.setAllDividers(updated);
 
-                if (editedIndices.isEmpty()) {
+                Set<Integer> remappedEdited = new HashSet<>();
+                for (int i = 0; i < activeIndices.size(); i++) {
+                    if (editedIndices.contains(activeIndices.get(i))) {
+                        remappedEdited.add(i);
+                    }
+                }
+
+                if (remappedEdited.isEmpty() || !removedCategories.isEmpty()) {
                     divider.rebalanceAll();
                 } else {
-                    List<Category> anchors = new ArrayList<>();
-                    for (int idx : editedIndices) {
+                    List<Category> editedPools = new ArrayList<>();
+                    for (int idx : remappedEdited) {
                         if (idx < divider.getAllDividers().size()) {
-                            anchors.add(divider.getAllDividers().get(idx));
+                            editedPools.add(divider.getAllDividers().get(idx));
                         }
                     }
-                    divider.rebalanceExceptMultiple(anchors);
+                    divider.rebalanceExceptMultiple(editedPools);
                 }
 
-                for (Category c : divider.getAllDividers()) {
-                    Map<String, Object> update = new HashMap<>();
-                    update.put("percentage", c.getPercentage());
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(c.getCategory())
-                            .update(update);
+                if (deletedBalance > 0) {
+                    divider.redistributeDeletedBalance(deletedBalance);
+                }
+                // Check if any trackers are linked to the removed pools
+                List<String> affectedTrackers = new ArrayList<>();
+                User currentUser = SessionManager.getInstance().getCurrentUser();
+                if (currentUser != null && !removedCategories.isEmpty()) {
+                    for (FixedExpense expense : currentUser.getExpenseList().getAllExpenses()) {
+                        if (removedCategories.contains(expense.getCategory())) {
+                            affectedTrackers.add(expense.getTitle() + " (" + expense.getCategory() + ")");
+                        }
+                    }
                 }
 
-                IncomeActivity.saveCategories(divider);
-                renderCategories();
-                Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+                Runnable applyChanges = () -> {
+                    for (String removedName : removedCategories) {
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(removedName)
+                                .delete();
+                    }
+                    List<Category> pools = new ArrayList<>(divider.getAllDividers());
+                    for (Category c : pools) {
+                        Map<String, Object> update = new HashMap<>();
+                        update.put("percentage", c.getPercentage());
+                        update.put("balance", c.getBalance());
+                        update.put("lastAllocation", c.getLastAllocation());
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(c.getCategory())
+                                .update(update);
+                    }
+                    IncomeActivity.saveCategories(divider);
+                    renderCategories();
+                    loadChartData();
+                    Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                };
+
+                if (!affectedTrackers.isEmpty()) {
+                    StringBuilder msg = new StringBuilder(
+                            "The following trackers are linked to a pool being removed and will lose pool deduction:\n\n");
+                    for (String name : affectedTrackers) msg.append("• ").append(name).append("\n");
+                    msg.append("\nProceed anyway?");
+                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Linked trackers affected")
+                            .setMessage(msg.toString())
+                            .setPositiveButton("Remove anyway", (d, w) -> applyChanges.run())
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                } else {
+                    applyChanges.run();
+                }
             });
 
             dialog.show();
@@ -286,6 +378,7 @@ public class ChartsFragment extends Fragment {
 
                 IncomeActivity.saveCategories(divider);
                 renderCategories();
+                loadChartData();
                 Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -303,10 +396,10 @@ public class ChartsFragment extends Fragment {
                 .collection("percDividers")
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    List<Category> list = new java.util.ArrayList<>();
+                    List<Category> list = new ArrayList<>();
 
                     for (QueryDocumentSnapshot doc : snapshot) {
-                        String name = doc.getId();
+                        String name    = doc.getId();
                         Double percent = doc.getDouble("percentage");
                         Double balance = doc.getDouble("balance");
                         Double last    = doc.getDouble("lastAllocation");
@@ -323,6 +416,8 @@ public class ChartsFragment extends Fragment {
 
                     divider.setAllDividers(list);
                     renderCategories();
+                    // loadChartData() called here ONLY — after divider is populated
+                    loadChartData();
                 });
     }
 
@@ -343,23 +438,108 @@ public class ChartsFragment extends Fragment {
             User u = SessionManager.getInstance().getCurrentUser();
             if (u != null) divider = u.getPercDivider();
         }
-        if (divider != null && categoryContainer != null) renderCategories();
-        loadChartData();
+        if (divider != null && categoryContainer != null) {
+            loadDividerFromFirebase();
+        }
     }
 
     private void renderCategories() {
+        if (categoryContainer == null) return;
         categoryContainer.removeAllViews();
-        for (Category c : divider.getAllDividers()) {
-            TextView tv = new TextView(requireContext());
-            tv.setText(c.getCategory() + " - "
-                    + String.format("%.0f%%", c.getPercentage())
-                    + " | Balance: €" + String.format("%.2f", c.getBalance())
-                    + " | Last: €" + String.format("%.2f", c.getLastAllocation()));
-            tv.setTextSize(16);
-            tv.setTextColor(android.graphics.Color.parseColor("#DDDDDD"));
-            tv.setPadding(8, 8, 8, 8);
-            categoryContainer.addView(tv);
+
+        List<Category> cats = divider.getAllDividers();
+        for (int i = 0; i < cats.size(); i++) {
+            Category c = cats.get(i);
+
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(0, i == 0 ? 0 : dp(12), 0, dp(12));
+
+            // Top line: name | percentage pill | balance
+            LinearLayout topLine = new LinearLayout(requireContext());
+            topLine.setOrientation(LinearLayout.HORIZONTAL);
+            topLine.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+            TextView tvName = new TextView(requireContext());
+            tvName.setText(c.getCategory());
+            tvName.setTextSize(15);
+            tvName.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+            tvName.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tvName.setLayoutParams(nameParams);
+
+            GradientDrawable pill = new GradientDrawable();
+            pill.setShape(GradientDrawable.RECTANGLE);
+            pill.setCornerRadius(dp(10));
+            pill.setColor(android.graphics.Color.parseColor("#333336"));
+
+            TextView tvPct = new TextView(requireContext());
+            tvPct.setText(String.format(Locale.US, "%.0f%%", c.getPercentage()));
+            tvPct.setTextSize(12);
+            tvPct.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
+            tvPct.setBackground(pill);
+            tvPct.setPadding(dp(8), dp(3), dp(8), dp(3));
+
+            TextView tvBalance = new TextView(requireContext());
+            tvBalance.setText(String.format(Locale.US, "€%.2f", c.getBalance()));
+            tvBalance.setTextSize(14);
+            tvBalance.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
+            tvBalance.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams balParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            balParams.setMarginStart(dp(12));
+            tvBalance.setLayoutParams(balParams);
+
+            topLine.addView(tvName);
+            topLine.addView(tvPct);
+            topLine.addView(tvBalance);
+
+            // Progress bar representing allocation percentage
+            ProgressBar pb = new ProgressBar(requireContext(), null,
+                    android.R.attr.progressBarStyleHorizontal);
+            pb.setMax(100);
+            pb.setProgress((int) c.getPercentage());
+            pb.setProgressTintList(ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#4DB6AC")));
+            pb.setProgressBackgroundTintList(ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#3A3A3C")));
+            LinearLayout.LayoutParams pbParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(4));
+            pbParams.topMargin = dp(8);
+            pb.setLayoutParams(pbParams);
+
+            // Last allocation subtitle
+            TextView tvLast = new TextView(requireContext());
+            tvLast.setText(String.format(Locale.US, "Last allocated: €%.2f", c.getLastAllocation()));
+            tvLast.setTextSize(12);
+            tvLast.setTextColor(android.graphics.Color.parseColor("#777777"));
+            LinearLayout.LayoutParams lastParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lastParams.topMargin = dp(4);
+            tvLast.setLayoutParams(lastParams);
+
+            row.addView(topLine);
+            row.addView(pb);
+            row.addView(tvLast);
+
+            // Thin divider between rows (not after the last one)
+            if (i < cats.size() - 1) {
+                View dividerLine = new View(requireContext());
+                dividerLine.setBackgroundColor(android.graphics.Color.parseColor("#3A3A3C"));
+                LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1);
+                divParams.topMargin = dp(12);
+                dividerLine.setLayoutParams(divParams);
+                row.addView(dividerLine);
+            }
+
+            categoryContainer.addView(row);
         }
+    }
+
+    private int dp(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private void setupWebView(WebView wv) {
@@ -394,14 +574,22 @@ public class ChartsFragment extends Fragment {
         nextBtn.setAlpha(currentOffset < 0 ? 1f : 0.4f);
 
         int weeks = getWeeksInMonth(monthStart);
-        float[] incomeByWeek   = new float[weeks];
-        float[] expenseByWeek  = new float[weeks];
+        float[] incomeByWeek     = new float[weeks];
+        float[] expenseByWeek    = new float[weeks];
         float[] incomeByWeekLine = new float[weeks];
-        float[] pie = {0f, 0f, 0f, 0f};
+
+        // Pie chart reads directly from SmartPercentage balances
+        List<Category> cats = new ArrayList<>(divider.getAllDividers());
+        float[] pie = new float[cats.size()];
+        for (int i = 0; i < cats.size(); i++) {
+            pie[i] = (float) cats.get(i).getBalance();
+        }
+        loadPieChart(pieChartView, pie, cats);
 
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
+        // Bar and Line charts read from transactions
         FirebaseFirestore.getInstance()
                 .collection("users").document(firebaseUser.getUid())
                 .collection("transactions")
@@ -411,16 +599,14 @@ public class ChartsFragment extends Fragment {
                 .addOnSuccessListener(snap -> {
                     if (snap.isEmpty()) {
                         loadBarChart(barChartView, "'Wk 1'", "[0]", "[0]");
-                        loadPieChart(pieChartView, new float[]{0, 0, 0, 0});
                         loadLineChart(lineChartView, "'Wk 1'", "[0]");
                         return;
                     }
 
                     for (QueryDocumentSnapshot doc : snap) {
-                        Date date = doc.getDate("createdAt");
-                        Double amt = doc.getDouble("amount");
+                        Date date   = doc.getDate("createdAt");
+                        Double amt  = doc.getDouble("amount");
                         String type = doc.getString("type");
-                        String cat = doc.getString("category");
                         if (date == null || amt == null || type == null) continue;
 
                         int week = (int) ((date.getTime() - monthStart.getTime())
@@ -433,12 +619,6 @@ public class ChartsFragment extends Fragment {
                         }
                         if ("Expense".equals(type)) {
                             expenseByWeek[week] += amt.floatValue();
-                            if (cat != null) {
-                                if (cat.contains("Rent")) pie[0] += amt.floatValue();
-                                else if (cat.contains("Sub")) pie[1] += amt.floatValue();
-                                else if (cat.contains("Util")) pie[2] += amt.floatValue();
-                                else pie[3] += amt.floatValue();
-                            }
                         }
                     }
 
@@ -450,8 +630,8 @@ public class ChartsFragment extends Fragment {
 
                     loadBarChart(barChartView, weekLabels.toString(),
                             toJsArray(incomeByWeek), toJsArray(expenseByWeek));
-                    loadPieChart(pieChartView, pie);
-                    loadLineChart(lineChartView, weekLabels.toString(), toJsArray(incomeByWeekLine));
+                    loadLineChart(lineChartView, weekLabels.toString(),
+                            toJsArray(incomeByWeekLine));
                 })
                 .addOnFailureListener(e -> {
                     if (isAdded() && tvMonthLabel != null)
@@ -481,7 +661,23 @@ public class ChartsFragment extends Fragment {
         wv.loadDataWithBaseURL("https://cdn.jsdelivr.net", html, "text/html", "UTF-8", null);
     }
 
-    private void loadPieChart(WebView wv, float[] pie) {
+    private void loadPieChart(WebView wv, float[] pie, List<Category> cats) {
+        String[] colors = {
+                "#534AB7", "#1D9E75", "#D85A30", "#BA7517",
+                "#E91E63", "#FF9800", "#00BCD4", "#9C27B0"
+        };
+
+        StringBuilder labels   = new StringBuilder();
+        StringBuilder data     = new StringBuilder();
+        StringBuilder colorArr = new StringBuilder();
+
+        for (int i = 0; i < cats.size(); i++) {
+            if (i > 0) { labels.append(","); data.append(","); colorArr.append(","); }
+            labels.append("'").append(cats.get(i).getCategory()).append("'");
+            data.append(String.format(Locale.US, "%.2f", pie[i]));
+            colorArr.append("'").append(colors[i % colors.length]).append("'");
+        }
+
         String html = "<!DOCTYPE html><html><head>"
                 + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
                 + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;max-height:160px;}</style>"
@@ -489,9 +685,9 @@ public class ChartsFragment extends Fragment {
                 + "<canvas id='c'></canvas><script>"
                 + "new Chart(document.getElementById('c'),{"
                 + "type:'doughnut',"
-                + "data:{labels:['Rent','Subscriptions','Utilities','Other'],"
-                + "datasets:[{data:[" + pie[0] + "," + pie[1] + "," + pie[2] + "," + pie[3] + "],"
-                + "backgroundColor:['#534AB7','#1D9E75','#D85A30','#BA7517'],"
+                + "data:{labels:[" + labels + "],"
+                + "datasets:[{data:[" + data + "],"
+                + "backgroundColor:[" + colorArr + "],"
                 + "borderWidth:0}]},"
                 + "options:{responsive:true,plugins:{legend:"
                 + "{position:'bottom',labels:{color:'#fff',padding:16}}}}});"

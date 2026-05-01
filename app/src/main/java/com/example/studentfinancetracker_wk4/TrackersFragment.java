@@ -90,6 +90,8 @@ public class TrackersFragment extends Fragment {
 
         addButton.setOnClickListener(v -> showAddChoiceDialog());
         setupFilterBar();
+        updateCostSummary();
+        NotificationHelper.notifyUpcomingBills(requireContext(), currentUser);
     }
 
     private TextView activeFilter;
@@ -287,6 +289,7 @@ public class TrackersFragment extends Fragment {
             FixedExpense expense = new FixedExpense(category, title, amount, frequency, description);
             if ("Subscriptions".equals(category)) expense.setLastPayment(startDate[0]);
             currentUser.addExpense(expense);
+            saveTrackers(currentUser);
 
             if ("Subscriptions".equals(category)) addSubscriptionBox(expense);
             else addExpenseBox(expense);
@@ -346,6 +349,7 @@ public class TrackersFragment extends Fragment {
 
             SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate[0]);
             savingsList.addGoal(goal);
+            saveTrackers(currentUser);
             addSavingsGoalBox(goal);
             dialog.dismiss();
         });
@@ -353,9 +357,7 @@ public class TrackersFragment extends Fragment {
         btnExit.setOnClickListener(e -> dialog.dismiss());
     }
 
-    private void addSavingsGoalBox(SavingsGoal goal) { addSavingsGoalBox(goal, -1); }
-
-    private void addSavingsGoalBox(SavingsGoal goal, int index) {
+    private void addSavingsGoalBox(SavingsGoal goal) {
         LinearLayout container = rootView.findViewById(R.id.savingsContainer);
         View box = requireActivity().getLayoutInflater().inflate(R.layout.savings_item, container, false);
 
@@ -372,9 +374,10 @@ public class TrackersFragment extends Fragment {
         TextView    tvLastContrib = box.findViewById(R.id.tvLastContrib);
         Button      btnHistory    = box.findViewById(R.id.btnHistory);
         ImageButton btnMenu       = box.findViewById(R.id.btnMenu);
+        TextView    tvOnTrack     = box.findViewById(R.id.tvOnTrack);
 
         refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
-                tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib);
+                tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
 
         btnContribute.setOnClickListener(v -> {
             String input = etContribute.getText().toString().trim();
@@ -391,9 +394,10 @@ public class TrackersFragment extends Fragment {
                 return;
             }
             goal.addContribution(amount);
+            saveTrackers(currentUser);
             etContribute.setText("");
             refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
-                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib);
+                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
             if (goal.isCompleted())
                 Toast.makeText(requireContext(), "Goal '" + goal.getTitle() + "' completed!", Toast.LENGTH_SHORT).show();
         });
@@ -402,17 +406,16 @@ public class TrackersFragment extends Fragment {
 
         btnMenu.setOnClickListener(v -> showSavingsEditDialog(goal, box, container,
                 tvTitle, tvCompleted, tvTarget, progressBar, tvSaved, tvPercent,
-                tvDeadline, tvNotes, tvLastContrib));
+                tvDeadline, tvNotes, tvLastContrib, tvOnTrack));
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptySavings);
     }
 
     private void refreshSavingsCard(SavingsGoal goal,
             TextView tvTitle, TextView tvCompleted, TextView tvTarget,
             ProgressBar progressBar, TextView tvSaved, TextView tvPercent,
-            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib) {
+            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib, TextView tvOnTrack) {
 
         tvTitle.setText(goal.getTitle());
         tvTarget.setText(String.format("€%.2f", goal.getTargetAmount()));
@@ -451,12 +454,54 @@ public class TrackersFragment extends Fragment {
         } else {
             tvNotes.setVisibility(View.GONE);
         }
+
+        if (tvOnTrack != null) {
+            if (!goal.isCompleted() && goal.getTargetDate() != null) {
+                int daysLeft = goal.getDaysToTarget();
+                double remaining = goal.getRemainingAmount();
+                if (daysLeft <= 0) {
+                    tvOnTrack.setText("Deadline reached");
+                    tvOnTrack.setTextColor(Color.parseColor("#FF6B6B"));
+                    tvOnTrack.setVisibility(View.VISIBLE);
+                } else {
+                    double monthsLeft = daysLeft / 30.44;
+                    double requiredMonthly = remaining / monthsLeft;
+                    List<Date> contribDates = goal.getContributionDates();
+                    Date firstContrib = null;
+                    for (int i = 1; i < contribDates.size(); i++) {
+                        if (contribDates.get(i) != null) { firstContrib = contribDates.get(i); break; }
+                    }
+                    String statusText;
+                    int statusColor;
+                    if (firstContrib == null || goal.getCurrentAmount() <= 0) {
+                        statusText = String.format(Locale.getDefault(), "Needs €%.2f/month to reach goal", requiredMonthly);
+                        statusColor = Color.parseColor("#FF9800");
+                    } else {
+                        long daysSinceStart = Math.max(1,
+                                (new Date().getTime() - firstContrib.getTime()) / (1000L * 60 * 60 * 24));
+                        double actualMonthly = (goal.getCurrentAmount() / (double) daysSinceStart) * 30.44;
+                        if (actualMonthly >= requiredMonthly * 0.95) {
+                            statusText = "On track ✓";
+                            statusColor = Color.parseColor("#4CAF50");
+                        } else {
+                            statusText = String.format(Locale.getDefault(), "Behind — needs €%.2f/month", requiredMonthly);
+                            statusColor = Color.parseColor("#FF9800");
+                        }
+                    }
+                    tvOnTrack.setText(statusText);
+                    tvOnTrack.setTextColor(statusColor);
+                    tvOnTrack.setVisibility(View.VISIBLE);
+                }
+            } else {
+                tvOnTrack.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void showSavingsEditDialog(SavingsGoal goal, View box, LinearLayout container,
             TextView tvTitle, TextView tvCompleted, TextView tvTarget,
             ProgressBar progressBar, TextView tvSaved, TextView tvPercent,
-            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib) {
+            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib, TextView tvOnTrack) {
 
         View editView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_savings, null);
 
@@ -513,6 +558,7 @@ public class TrackersFragment extends Fragment {
             btnCancel.setOnClickListener(ev -> { delDialog.dismiss(); dialog.dismiss(); });
             btnConfirmDelete.setOnClickListener(ev -> {
                 savingsList.removeGoal(goal);
+                saveTrackers(currentUser);
                 container.removeView(box);
                 updateEmptyState(container, R.id.emptySavings);
                 delDialog.dismiss();
@@ -543,9 +589,10 @@ public class TrackersFragment extends Fragment {
             goal.setTargetAmount(target);
             goal.setNotes(notesStr);
             goal.setTargetDate(targetDate[0]);
+            saveTrackers(currentUser);
 
             refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
-                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib);
+                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
             dialog.dismiss();
         });
 
@@ -586,33 +633,39 @@ public class TrackersFragment extends Fragment {
         btnClose.setOnClickListener(vv -> dialog.dismiss());
     }
 
-    private void addExpenseBox(FixedExpense expense) { addExpenseBox(expense, -1); }
-
-    private void addExpenseBox(FixedExpense expense, int index) {
+    private void addExpenseBox(FixedExpense expense) {
         LinearLayout container = rootView.findViewById(R.id.fixedExpenseContainer);
         View box = requireActivity().getLayoutInflater().inflate(R.layout.expense_item, container, false);
 
-        TextView    tvCategory    = box.findViewById(R.id.tvCategory);
-        TextView    tvTitle       = box.findViewById(R.id.tvTitle);
-        TextView    tvAmount      = box.findViewById(R.id.tvAmount);
-        Button      btnPay        = box.findViewById(R.id.btnPay);
-        TextView    tvTotalPaid   = box.findViewById(R.id.tvTotalPaid);
-        TextView    tvNextPayment = box.findViewById(R.id.tvNextPayment);
-        EditText    etAmount      = box.findViewById(R.id.etAmount);
-        ImageButton btnMenu       = box.findViewById(R.id.btnMenu);
-        TextView    tvFreq        = box.findViewById(R.id.tvFreq);
-        TextView    tvNotes       = box.findViewById(R.id.tvNotes);
-        TextView    tvLastPayment = box.findViewById(R.id.tvLastPayment);
-        Button      btnHistory    = box.findViewById(R.id.btnHistory);
+        TextView    tvCategory         = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle            = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount           = box.findViewById(R.id.tvAmount);
+        Button      btnPay             = box.findViewById(R.id.btnPay);
+        TextView    tvTotalPaid        = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment      = box.findViewById(R.id.tvNextPayment);
+        EditText    etAmount           = box.findViewById(R.id.etAmount);
+        ImageButton btnMenu            = box.findViewById(R.id.btnMenu);
+        TextView    tvFreq             = box.findViewById(R.id.tvFreq);
+        TextView    tvNotes            = box.findViewById(R.id.tvNotes);
+        TextView    tvLastPayment      = box.findViewById(R.id.tvLastPayment);
+        Button      btnHistory         = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
+        TextView    tvAnnualCost        = box.findViewById(R.id.tvAnnualCost);
+
+        int autoCycles = expense.processCompletedCycles();
+        if (autoCycles > 0)
+            Toast.makeText(requireContext(), autoCycles + " " + expense.getTitle() + " payment(s) auto-recorded", Toast.LENGTH_SHORT).show();
 
         tvCategory.setText(expense.getCategory());
         tvTitle.setText(expense.getTitle());
         tvAmount.setText(String.format("€%.2f", expense.getAmount()));
         tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
         tvFreq.setText(expense.getFrequency());
+        tvAnnualCost.setText(String.format(Locale.getDefault(), "€%.2f/yr  ·  €%.2f/mo", expense.getAnnualCost(), expense.getAnnualCost() / 12.0));
         setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
         setNotesText(tvNotes, expense.getNotes());
         setLastPaymentText(tvLastPayment, expense.getLastPayment());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
 
         btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
 
@@ -630,12 +683,20 @@ public class TrackersFragment extends Fragment {
                     return;
                 }
             }
+            if (!percDivider.tryDeductExpense(expense.getCategory(), amountToPay)) {
+                Toast.makeText(requireContext(), "Insufficient funds in pool", Toast.LENGTH_SHORT).show();
+                return;
+            }
             expense.addPayment(amountToPay);
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
+            IncomeActivity.saveCategories(percDivider);
+            IncomeActivity.saveDivider(percDivider);
+            saveTrackers(currentUser);
             recordTransaction(expense.getCategory(), amountToPay);
         });
 
@@ -734,9 +795,12 @@ public class TrackersFragment extends Fragment {
                 tvAmount.setText(String.format("€%.2f", expense.getAmount()));
                 tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
                 tvFreq.setText(expense.getFrequency());
+                tvAnnualCost.setText(String.format(Locale.getDefault(), "€%.2f/yr  ·  €%.2f/mo", expense.getAnnualCost(), expense.getAnnualCost() / 12.0));
                 setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
                 setNotesText(tvNotes, expense.getNotes());
                 setLastPaymentText(tvLastPayment, expense.getLastPayment());
+                saveTrackers(currentUser);
+                updateCostSummary();
                 dialog.dismiss();
             });
 
@@ -753,37 +817,38 @@ public class TrackersFragment extends Fragment {
                 btnCancel.setOnClickListener(e -> { delDialog.dismiss(); dialog.dismiss(); });
                 btnDelete.setOnClickListener(e -> {
                     expenseList.removeExpense(expense);
+                    saveTrackers(currentUser);
                     container.removeView(box);
                     updateEmptyState(container, R.id.emptyExpenses);
+                    updateCostSummary();
                     delDialog.dismiss();
                     dialog.dismiss();
                 });
             });
         });
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptyExpenses);
+        updateCostSummary();
     }
 
-    private void addSubscriptionBox(FixedExpense expense) { addSubscriptionBox(expense, -1); }
-
-    private void addSubscriptionBox(FixedExpense expense, int index) {
+    private void addSubscriptionBox(FixedExpense expense) {
         LinearLayout container = rootView.findViewById(R.id.subscriptionsContainer);
         View box = requireActivity().getLayoutInflater().inflate(R.layout.subscription_item, container, false);
 
-        TextView    tvCategory     = box.findViewById(R.id.tvCategory);
-        TextView    tvTitle        = box.findViewById(R.id.tvTitle);
-        TextView    tvAmount       = box.findViewById(R.id.tvAmount);
-        TextView    tvFreq         = box.findViewById(R.id.tvFreq);
-        TextView    tvTotalPaid    = box.findViewById(R.id.tvTotalPaid);
-        TextView    tvNextPayment  = box.findViewById(R.id.tvNextPayment);
-        TextView    tvAnnualCost   = box.findViewById(R.id.tvAnnualCost);
-        TextView    tvLastPayment  = box.findViewById(R.id.tvLastPayment);
-        TextView    tvAutoRecorded = box.findViewById(R.id.tvAutoRecorded);
-        TextView    tvNotes        = box.findViewById(R.id.tvNotes);
-        ImageButton btnMenu        = box.findViewById(R.id.btnMenu);
-        Button      btnHistory     = box.findViewById(R.id.btnHistory);
+        TextView    tvCategory          = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle             = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount            = box.findViewById(R.id.tvAmount);
+        TextView    tvFreq              = box.findViewById(R.id.tvFreq);
+        TextView    tvTotalPaid         = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment       = box.findViewById(R.id.tvNextPayment);
+        TextView    tvAnnualCost        = box.findViewById(R.id.tvAnnualCost);
+        TextView    tvLastPayment       = box.findViewById(R.id.tvLastPayment);
+        TextView    tvAutoRecorded      = box.findViewById(R.id.tvAutoRecorded);
+        TextView    tvNotes             = box.findViewById(R.id.tvNotes);
+        ImageButton btnMenu             = box.findViewById(R.id.btnMenu);
+        Button      btnHistory          = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
 
         tvCategory.setText(expense.getCategory());
         tvTitle.setText(expense.getTitle());
@@ -791,6 +856,7 @@ public class TrackersFragment extends Fragment {
         tvFreq.setText(expense.getFrequency());
         tvAnnualCost.setText(String.format("€%.2f / year", expense.getAnnualCost()));
         setNotesText(tvNotes, expense.getNotes());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
 
         int completed = expense.processCompletedCycles();
         if (completed > 0) {
@@ -923,6 +989,8 @@ public class TrackersFragment extends Fragment {
                 setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
                 setLastPaymentText(tvLastPayment, expense.getLastPayment());
                 setNotesText(tvNotes, expense.getNotes());
+                saveTrackers(currentUser);
+                updateCostSummary();
                 dialog.dismiss();
             });
 
@@ -939,17 +1007,19 @@ public class TrackersFragment extends Fragment {
                 btnCancel.setOnClickListener(e -> { delDialog.dismiss(); dialog.dismiss(); });
                 btnDelete.setOnClickListener(e -> {
                     expenseList.removeExpense(expense);
+                    saveTrackers(currentUser);
                     container.removeView(box);
                     updateEmptyState(container, R.id.emptySubscriptions);
+                    updateCostSummary();
                     delDialog.dismiss();
                     dialog.dismiss();
                 });
             });
         });
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptySubscriptions);
+        updateCostSummary();
     }
 
     private ArrayAdapter<String> buildCategoryAdapter() {
@@ -961,6 +1031,22 @@ public class TrackersFragment extends Fragment {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), R.layout.spinner_item_white, items);
         adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
         return adapter;
+    }
+
+    private void updateFundsWarning(TextView tv, String category, double required) {
+        for (Category c : percDivider.getAllDividers()) {
+            if (c.getCategory().equals(category)) {
+                if (c.getBalance() < required) {
+                    tv.setText("⚠ Insufficient funds in pool");
+                    tv.setVisibility(View.VISIBLE);
+                } else {
+                    tv.setVisibility(View.GONE);
+                }
+                return;
+            }
+        }
+        tv.setText("⚠ No pool linked to this category");
+        tv.setVisibility(View.VISIBLE);
     }
 
     private void setDaysText(TextView tv, int days) {
@@ -1030,6 +1116,88 @@ public class TrackersFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();
         btnClose.setOnClickListener(vv -> dialog.dismiss());
+    }
+
+    static void saveTrackers(User user) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        List<Map<String, Object>> expenseData = new ArrayList<>();
+        for (FixedExpense e : user.getExpenseList().getAllExpenses()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("category",   e.getCategory());
+            map.put("title",      e.getTitle());
+            map.put("amount",     e.getAmount());
+            map.put("frequency",  e.getFrequency());
+            map.put("notes",      e.getNotes() != null ? e.getNotes() : "");
+            map.put("totalPaid",  e.getTotalPaid());
+            map.put("lastPayment", e.getLastPayment());
+            map.put("paymentHist", e.getPaymentHist());
+            List<Object> payDates = new ArrayList<>();
+            for (Date d : e.getPaymentDates()) payDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("paymentDates", payDates);
+            expenseData.add(map);
+        }
+
+        List<Map<String, Object>> savingsData = new ArrayList<>();
+        for (SavingsGoal g : user.getSavingsList().getAllGoals()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("title",         g.getTitle());
+            map.put("notes",         g.getNotes() != null ? g.getNotes() : "");
+            map.put("targetAmount",  g.getTargetAmount());
+            map.put("currentAmount", g.getCurrentAmount());
+            map.put("targetDate",    g.getTargetDate());
+            map.put("contributionHist", g.getContributionHist());
+            List<Object> contribDates = new ArrayList<>();
+            for (Date d : g.getContributionDates()) contribDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("contributionDates", contribDates);
+            savingsData.add(map);
+        }
+
+        Map<String, Object> doc = new HashMap<>();
+        doc.put("expenses", expenseData);
+        doc.put("savings",  savingsData);
+
+        FirebaseFirestore.getInstance()
+                .collection("users").document(firebaseUser.getUid())
+                .collection("data").document("trackers")
+                .set(doc);
+    }
+
+    void refreshTrackers() {
+        if (rootView == null || expenseList == null || savingsList == null) return;
+
+        LinearLayout expContainer = rootView.findViewById(R.id.fixedExpenseContainer);
+        LinearLayout subContainer = rootView.findViewById(R.id.subscriptionsContainer);
+        LinearLayout savContainer = rootView.findViewById(R.id.savingsContainer);
+
+        expContainer.removeAllViews();
+        subContainer.removeAllViews();
+        savContainer.removeAllViews();
+
+        for (FixedExpense expense : expenseList.getAllExpenses()) {
+            if ("Subscriptions".equals(expense.getCategory())) addSubscriptionBox(expense);
+            else addExpenseBox(expense);
+        }
+        for (SavingsGoal goal : savingsList.getAllGoals()) {
+            addSavingsGoalBox(goal);
+        }
+
+        updateEmptyState(expContainer, R.id.emptyExpenses);
+        updateEmptyState(subContainer, R.id.emptySubscriptions);
+        updateEmptyState(savContainer, R.id.emptySavings);
+        updateCostSummary();
+    }
+
+    private void updateCostSummary() {
+        if (rootView == null || expenseList == null) return;
+        TextView tvMonthly = rootView.findViewById(R.id.tvTotalMonthly);
+        TextView tvAnnual  = rootView.findViewById(R.id.tvTotalAnnual);
+        if (tvMonthly == null || tvAnnual == null) return;
+        double annual = 0;
+        for (FixedExpense e : expenseList.getAllExpenses()) annual += e.getAnnualCost();
+        tvMonthly.setText(String.format(Locale.getDefault(), "€%.2f", annual / 12.0));
+        tvAnnual.setText(String.format(Locale.getDefault(), "€%.2f", annual));
     }
 
     private void recordTransaction(String category, double amount) {

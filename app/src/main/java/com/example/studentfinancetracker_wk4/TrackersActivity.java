@@ -345,9 +345,7 @@ public class TrackersActivity extends AppCompatActivity {
 
     // ─── Savings goal box ───────────────────────────────────────────────────────
 
-    private void addSavingsGoalBox(SavingsGoal goal) { addSavingsGoalBox(goal, -1); }
-
-    private void addSavingsGoalBox(SavingsGoal goal, int index) {
+    private void addSavingsGoalBox(SavingsGoal goal) {
         LinearLayout container = findViewById(R.id.savingsContainer);
         View box = getLayoutInflater().inflate(R.layout.savings_item, container, false);
 
@@ -396,8 +394,7 @@ public class TrackersActivity extends AppCompatActivity {
                 tvTitle, tvCompleted, tvTarget, progressBar, tvSaved, tvPercent,
                 tvDeadline, tvNotes, tvLastContrib));
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptySavings);
     }
 
@@ -587,9 +584,7 @@ public class TrackersActivity extends AppCompatActivity {
 
     // ─── Fixed expense box ──────────────────────────────────────────────────────
 
-    private void addExpenseBox(FixedExpense expense) { addExpenseBox(expense, -1); }
-
-    private void addExpenseBox(FixedExpense expense, int index) {
+    private void addExpenseBox(FixedExpense expense) {
         LinearLayout container = findViewById(R.id.fixedExpenseContainer);
         View box = getLayoutInflater().inflate(R.layout.expense_item, container, false);
 
@@ -631,12 +626,18 @@ public class TrackersActivity extends AppCompatActivity {
                     return;
                 }
             }
+            if (!percDivider.tryDeductExpense(expense.getCategory(), amountToPay)) {
+                Toast.makeText(this, "Insufficient funds in pool", Toast.LENGTH_SHORT).show();
+                return;
+            }
             expense.addPayment(amountToPay);
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            IncomeActivity.saveCategories(percDivider);
+            IncomeActivity.saveDivider(percDivider);
             recordTransaction(expense.getCategory(), amountToPay);
         });
 
@@ -762,16 +763,13 @@ public class TrackersActivity extends AppCompatActivity {
             });
         });
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptyExpenses);
     }
 
     // ─── Subscription box ───────────────────────────────────────────────────────
 
-    private void addSubscriptionBox(FixedExpense expense) { addSubscriptionBox(expense, -1); }
-
-    private void addSubscriptionBox(FixedExpense expense, int index) {
+    private void addSubscriptionBox(FixedExpense expense) {
         LinearLayout container = findViewById(R.id.subscriptionsContainer);
         View box = getLayoutInflater().inflate(R.layout.subscription_item, container, false);
 
@@ -950,8 +948,7 @@ public class TrackersActivity extends AppCompatActivity {
             });
         });
 
-        if (index >= 0) container.addView(box, index);
-        else container.addView(box);
+        container.addView(box);
         updateEmptyState(container, R.id.emptySubscriptions);
     }
 

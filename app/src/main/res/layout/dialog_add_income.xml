@@ -1,30 +1,42 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="16dp"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/etAmount"
-        android:hint="Amount (€)"
-        android:inputType="numberDecimal"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"/>
-
-    <EditText
-        android:id="@+id/etCategory"
-        android:hint="Category (optional)"
-        android:inputType="text"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="8dp"/>
-
-    <Button
-        android:id="@+id/btnConfirm"
-        android:text="Add Income"
-        android:backgroundTint="#2E7D5E"
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-</LinearLayout>
+        <EditText
+            android:id="@+id/etAmount"
+            android:hint="Amount (€)"
+            android:inputType="numberDecimal"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"/>
+
+        <EditText
+            android:id="@+id/etCategory"
+            android:hint="Category (optional)"
+            android:inputType="text"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btnConfirm"
+            android:text="Add Income"
+            android:backgroundTint="#2E7D5E"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"/>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -71,10 +71,21 @@ public class createUserActivity extends AppCompatActivity {
                                             userData.put("createdAt", new Date());
 
                                             userRef.set(userData);
+
+                                            Map<String, Object> otherCategory = new HashMap<>();
+                                            otherCategory.put("percentage", 100.0);
+                                            otherCategory.put("balance", 0.0);
+                                            otherCategory.put("lastAllocation", 0.0);
+
+                                            db.collection("users")
+                                                    .document(user.getUid())
+                                                    .collection("percDividers")
+                                                    .document("Other")
+                                                    .set(otherCategory);
                                         }
                                     });
                                 }
-                                Intent intent = new Intent(createUserActivity.this, HomeActivity.class);
+                                Intent intent = new Intent(createUserActivity.this, MainActivity.class);
                                 startActivity(intent);
                             } else {
                                 // If sign in fails, display a message to the user.

@@ -28,12 +28,6 @@
             android:textSize="22sp"
             android:textStyle="bold"/>
 
-<!--        <Button-->
-<!--            android:id="@+id/btnFilter"-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="36dp"-->
-<!--            android:text="Filter"-->
-<!--            android:textSize="13sp"/>-->
         <ImageButton
             android:id="@+id/btnFilter"
             android:layout_width="40dp"
@@ -121,7 +115,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp"/>
+            android:padding="8dp"/>
 
     </ScrollView>
 

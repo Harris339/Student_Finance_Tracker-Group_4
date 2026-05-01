@@ -1,6 +1,7 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.InputType;
@@ -26,6 +27,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -37,11 +39,29 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.util.Log;
+
 public class TransactionsFragment extends Fragment {
 
     private LinearLayout transactionContainer;
+    private static final String TAG = "BALANCE_LISTENER";
+
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final SimpleDateFormat dateFmt = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+    // ── Real-time listener ──────────────────────────────────────────────────
+    // ListenerRegistration lets us cleanly stop the listener when the fragment
+    // is destroyed so it does not leak memory or fire after the user leaves.
+    private ListenerRegistration balanceListener;
+
+    // Tracks whether a warning dialog is already on screen so we do not stack them.
+    private boolean warningShowing = false;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  LIFECYCLE
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
@@ -56,27 +76,162 @@ public class TransactionsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         transactionContainer = view.findViewById(R.id.transactionContainer);
-        BalanceViewModel viewModel =
-                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
+        new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
         view.findViewById(R.id.btnAddIncome).setOnClickListener(v -> showTransactionDialog(true));
         view.findViewById(R.id.btnAddExpense).setOnClickListener(v -> showTransactionDialog(false));
         view.findViewById(R.id.btnFilter).setOnClickListener(v -> showFilterDialog());
 
         loadTransactions(null, null);
+
+        // Start the permanent real-time balance watcher
+        startBalanceListener();
     }
 
     @Override
     public void onResume() {
         super.onResume();
         loadTransactions(null, null);
+        // Re-attach listener if it was detached while off-screen
+        if (balanceListener == null) startBalanceListener();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // Detach while off-screen to avoid background popups
+        stopBalanceListener();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        stopBalanceListener();
     }
 
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
-        if (!hidden) loadTransactions(null, null);
+        if (!hidden) {
+            loadTransactions(null, null);
+            if (balanceListener == null) startBalanceListener();
+        } else {
+            stopBalanceListener();
+        }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  REAL-TIME BALANCE LISTENER
+    //
+    //  addSnapshotListener registers a permanent callback with Firestore.
+    //  Every time the user document changes (including the Balance field),
+    //  Firestore pushes the new snapshot to this callback automatically, and then there is no polling, no manual threading required.
+    //
+    //  The moment saveTransaction() writes a new negative Balance to Firestore,
+    //  this listener fires and shows the warning dialog.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void startBalanceListener() {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        Log.d(TAG, "▶️ Balance listener attached");
+
+        balanceListener = db.collection("users")
+                .document(firebaseUser.getUid())
+                .addSnapshotListener((snapshot, e) -> {
+
+                    if (e != null) {
+                        Log.e(TAG, "❌ Listener error: " + e.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null || !snapshot.exists() || !isAdded()) return;
+
+                    Double balance = snapshot.getDouble("Balance");
+                    if (balance == null) return;
+
+                    Log.d(TAG, "🔔 Balance update received: €" + balance);
+
+                    // Only show if negative AND a dialog is not already visible
+                    if (balance < 0 && !warningShowing) {
+                        showNegativeBalanceWarning(balance);
+                    }
+                });
+    }
+
+    private void stopBalanceListener() {
+        if (balanceListener != null) {
+            balanceListener.remove();
+            balanceListener = null;
+            Log.d(TAG, "⏹️ Balance listener removed");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  NEGATIVE BALANCE WARNING DIALOG
+    //  Triggered automatically by the listener the instant balance goes negative.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void showNegativeBalanceWarning(double balance) {
+        if (!isAdded() || warningShowing) return;
+        warningShowing = true;
+
+        // Toast for immediate attention
+        Toast.makeText(requireContext(),
+                "⚠️ Your balance is negative!", Toast.LENGTH_LONG).show();
+
+        // Build dialog layout
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(20);
+        layout.setPadding(pad, pad, pad, pad);
+        layout.setBackgroundColor(Color.parseColor("#1E1E1E"));
+
+        TextView tvTitle = new TextView(requireContext());
+        tvTitle.setText("⚠️  Warning: Negative Balance");
+        tvTitle.setTextSize(16f);
+        tvTitle.setTextColor(Color.parseColor("#FF6B6B"));
+        tvTitle.setTypeface(null, Typeface.BOLD);
+        layout.addView(tvTitle);
+
+        View divider = new View(requireContext());
+        divider.setBackgroundColor(Color.parseColor("#8B3A2A"));
+        LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        divParams.topMargin = dp(10);
+        divParams.bottomMargin = dp(14);
+        layout.addView(divider, divParams);
+
+        TextView tvMessage = new TextView(requireContext());
+        tvMessage.setText(String.format(Locale.getDefault(),
+                "Your balance has dropped to €%.2f.\n\nPlease review your spending.",
+                balance));
+        tvMessage.setTextSize(14f);
+        tvMessage.setTextColor(Color.parseColor("#CCCCCC"));
+        tvMessage.setLineSpacing(0f, 1.4f);
+        layout.addView(tvMessage);
+
+        AlertDialog warningDialog = new AlertDialog.Builder(requireContext())
+                .setView(layout)
+                .setCancelable(false)        // user must actively dismiss it
+                .setPositiveButton("OK, got it", (d, which) -> {
+                    warningShowing = false;  // allow the dialog to show again next time
+                    d.dismiss();
+                })
+                .create();
+
+        if (warningDialog.getWindow() != null) {
+            warningDialog.getWindow().setBackgroundDrawable(
+                    new ColorDrawable(Color.parseColor("#1E1E1E")));
+        }
+
+        warningDialog.show();
+        warningDialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setTextColor(Color.parseColor("#FF6B6B"));
+    }
+
+
 
     private void showTransactionDialog(boolean isIncome) {
         LinearLayout layout = new LinearLayout(requireContext());
@@ -128,7 +283,7 @@ public class TransactionsFragment extends Fragment {
             }
 
             String category = etCategory.getText().toString().trim();
-            if (category.isEmpty()) category = isIncome ? "General" : "General";
+            if (category.isEmpty()) category = "General";
             String type = isIncome ? "Income" : "Expense";
 
             if (isIncome) {
@@ -148,6 +303,10 @@ public class TransactionsFragment extends Fragment {
         dialog.show();
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  FILTER DIALOG
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void showFilterDialog() {
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
@@ -156,13 +315,13 @@ public class TransactionsFragment extends Fragment {
         View dialogView = requireActivity().getLayoutInflater()
                 .inflate(R.layout.filter_transaction_search, null);
 
-        Spinner spinnerCat = dialogView.findViewById(R.id.spCategory);
+        Spinner spinnerCat  = dialogView.findViewById(R.id.spCategory);
         Spinner spinnerType = dialogView.findViewById(R.id.spType);
-        View btnExit = dialogView.findViewById(R.id.btnExit);
-        Button setBtn = dialogView.findViewById(R.id.setBtn);
+        View    btnExit     = dialogView.findViewById(R.id.btnExit);
+        Button  setBtn      = dialogView.findViewById(R.id.setBtn);
 
         List<String> categories = new ArrayList<>();
-        List<String> types = new ArrayList<>();
+        List<String> types      = new ArrayList<>();
 
         ArrayAdapter<String> catAdapter = new ArrayAdapter<>(requireContext(),
                 R.layout.spinner_item_white, categories);
@@ -185,10 +344,10 @@ public class TransactionsFragment extends Fragment {
                     categories.add("Any");
                     types.add("Any");
                     for (DocumentSnapshot doc : snapshots) {
-                        String cat = doc.getString("category");
+                        String cat  = doc.getString("category");
                         String type = doc.getString("type");
-                        if (cat != null && !categories.contains(cat)) categories.add(cat);
-                        if (type != null && !types.contains(type)) types.add(type);
+                        if (cat  != null && !categories.contains(cat))  categories.add(cat);
+                        if (type != null && !types.contains(type))       types.add(type);
                     }
                     catAdapter.notifyDataSetChanged();
                     typeAdapter.notifyDataSetChanged();
@@ -202,16 +361,20 @@ public class TransactionsFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
         setBtn.setOnClickListener(v -> {
-            String catFilter = spinnerCat.getSelectedItem().toString();
+            String catFilter  = spinnerCat.getSelectedItem().toString();
             String typeFilter = spinnerType.getSelectedItem().toString();
             loadTransactions(
-                    catFilter.equals("Any") ? null : catFilter,
+                    catFilter.equals("Any")  ? null : catFilter,
                     typeFilter.equals("Any") ? null : typeFilter);
             dialog.dismiss();
         });
 
         btnExit.setOnClickListener(v -> dialog.dismiss());
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  LOAD TRANSACTIONS
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void loadTransactions(@Nullable String categoryFilter, @Nullable String typeFilter) {
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -222,7 +385,7 @@ public class TransactionsFragment extends Fragment {
                 .collection("transactions");
 
         if (categoryFilter != null) query = query.whereEqualTo("category", categoryFilter);
-        if (typeFilter != null)     query = query.whereEqualTo("type", typeFilter);
+        if (typeFilter     != null) query = query.whereEqualTo("type",     typeFilter);
 
         query.get().addOnSuccessListener(snap -> {
             if (!isAdded() || transactionContainer == null) return;
@@ -236,16 +399,15 @@ public class TransactionsFragment extends Fragment {
                 transactionContainer.addView(empty);
                 return;
             }
-
             for (QueryDocumentSnapshot doc : snap) {
-                String type     = doc.getString("type");
-                String category = doc.getString("category");
-                Double amount   = doc.getDouble("amount");
-                Date createdAt  = doc.getDate("createdAt");
-                String date     = createdAt != null ? dateFmt.format(createdAt) : "N/A";
+                String type      = doc.getString("type");
+                String category  = doc.getString("category");
+                Double amount    = doc.getDouble("amount");
+                Date   createdAt = doc.getDate("createdAt");
+                String date      = createdAt != null ? dateFmt.format(createdAt) : "N/A";
 
+                String safeType = type != null ? type : "N/A";
                 boolean isIncome = "Income".equalsIgnoreCase(type);
-                String safeType     = type != null ? type : "N/A";
                 String safeCategory = category != null ? category : "General";
                 String amountStr    = "€" + (amount != null
                         ? String.format(Locale.getDefault(), "%.2f", amount) : "0.00");
@@ -277,21 +439,58 @@ public class TransactionsFragment extends Fragment {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SAVE TRANSACTION
+    //  Writes to Firestore — this triggers the snapshot listener automatically.
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void saveTransaction(String category, double amount, String type) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            Log.e(TAG, "No firebase user found");
+            return;
+        }
 
         Map<String, Object> tx = new HashMap<>();
-        tx.put("amount", amount);
-        tx.put("type", type);
-        tx.put("category", category);
+        tx.put("amount",    amount);
+        tx.put("type",      type);
+        tx.put("category",  category);
         tx.put("createdAt", new Date());
 
-        String uid = user.getUid();
+        String uid   = user.getUid();
+        double delta = type.equals("Income") ? amount : -amount;
+
         db.collection("users").document(uid).collection("transactions").add(tx);
-        db.collection("users").document(uid)
-                .update("Balance", FieldValue.increment(type.equals("Income") ? amount : -amount));
+
+        db.collection("users").document(uid).get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot == null || !snapshot.exists()) return;
+
+                    Double currentBalance = snapshot.getDouble("Balance");
+                    if (currentBalance == null) currentBalance = 0.0;
+                    double newBalance = currentBalance + delta;
+
+                    // Writing this update is what triggers startBalanceListener()
+                    db.collection("users").document(uid).update("Balance", newBalance);
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        boolean hasPermission = requireContext().checkSelfPermission(
+                                android.Manifest.permission.POST_NOTIFICATIONS)
+                                == PackageManager.PERMISSION_GRANTED;
+                        Log.d(TAG, "Notification permission granted: " + hasPermission);
+                    }
+
+                    if (newBalance < 0 && type.equals("Expense") && isAdded()) {
+                        NotificationHelper.sendOverspendNotification(requireContext(), newBalance);
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "Failed to fetch user document: " + e.getMessage()));
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
 
     private int dp(int value) {
         float density = requireContext().getResources().getDisplayMetrics().density;

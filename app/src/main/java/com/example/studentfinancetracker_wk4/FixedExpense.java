@@ -1,6 +1,5 @@
 package com.example.studentfinancetracker_wk4;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,7 +18,6 @@ public class FixedExpense {
 
     private List<Double> paymentHist;
     private List<Date> paymentDates;
-    private Category categoryObj;
 
     private int pos = 0;
 
@@ -34,20 +32,6 @@ public class FixedExpense {
         this.lastPayment = null;
         this.paymentHist = new ArrayList<>();
         this.paymentDates = new ArrayList<>();
-        paymentHist.add(totalPaid);
-        paymentDates.add(null);
-
-        User currentUser = SessionManager.getInstance().getCurrentUser();
-        if (currentUser != null) {
-            SmartPercentageDivider divider = currentUser.getPercDivider();
-            if (divider != null) {
-                for (Category c : divider.getAllDividers()) {
-                    if (c.getCategory().equals(category)) {
-                        categoryObj = c;
-                    }
-                }
-            }
-        }
     }
 
     public FixedExpense(String category, String title, double amount, String frequency, String notes, double totalPaid) {
@@ -124,7 +108,6 @@ public class FixedExpense {
     public void addPayment(double amount){
         totalPaid += amount;
         addNewHist();
-        if (categoryObj != null) categoryObj.deductFromBalance(amount);
     }
 
     public void addNewHist(){
@@ -135,6 +118,10 @@ public class FixedExpense {
 
     public int getPos() {
         return pos;
+    }
+
+    public void setPos(int pos) {
+        this.pos = pos;
     }
 
     public List<Double> getPaymentHist() {
@@ -222,7 +209,7 @@ public class FixedExpense {
         return "Category: " + category + "\n" +
                 "Title: " + title + "\n" +
                 "Amount: " + amount + "\n" +
-                "Frequenct=y: " + frequency + "\n" +
+                "Frequency: " + frequency + "\n" +
                 "Notes: " + notes + "\n\n";
     }
 }

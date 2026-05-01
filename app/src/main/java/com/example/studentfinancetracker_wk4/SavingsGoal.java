@@ -35,6 +35,7 @@ public class SavingsGoal {
     public List<Double> getContributionHist() { return contributionHist; }
     public List<Date> getContributionDates() { return contributionDates; }
     public int getPos() { return pos; }
+    public void setPos(int pos) { this.pos = pos; }
 
     public void setTitle(String title) { this.title = title; }
     public void setNotes(String notes) { this.notes = notes; }

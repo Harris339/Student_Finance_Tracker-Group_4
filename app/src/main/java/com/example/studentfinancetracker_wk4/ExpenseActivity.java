@@ -50,8 +50,13 @@ public class ExpenseActivity extends TransactionActivity {
     private void addExpense(String category, double amount) {
         totalExpenses += amount;
 
-        transaction(category, amount, "Expense");
+        User user = SessionManager.getInstance().getCurrentUser();
+        if (user != null) {
+            user.getPercDivider().deductExpense(category, amount);
+            IncomeActivity.saveDivider(user.getPercDivider());
+        }
 
+        transaction(category, amount, "Expense");
         Toast.makeText(this, "Expense Added", Toast.LENGTH_SHORT).show();
     }
 }
