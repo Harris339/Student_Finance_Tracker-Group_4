@@ -7,10 +7,14 @@ import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.content.res.ColorStateList;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -442,17 +446,100 @@ public class ChartsFragment extends Fragment {
     private void renderCategories() {
         if (categoryContainer == null) return;
         categoryContainer.removeAllViews();
-        for (Category c : divider.getAllDividers()) {
-            TextView tv = new TextView(requireContext());
-            tv.setText(c.getCategory() + " - "
-                    + String.format("%.0f%%", c.getPercentage())
-                    + " | Balance: €" + String.format("%.2f", c.getBalance())
-                    + " | Last: €" + String.format("%.2f", c.getLastAllocation()));
-            tv.setTextSize(16);
-            tv.setTextColor(android.graphics.Color.parseColor("#DDDDDD"));
-            tv.setPadding(8, 8, 8, 8);
-            categoryContainer.addView(tv);
+
+        List<Category> cats = divider.getAllDividers();
+        for (int i = 0; i < cats.size(); i++) {
+            Category c = cats.get(i);
+
+            LinearLayout row = new LinearLayout(requireContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            row.setPadding(0, i == 0 ? 0 : dp(12), 0, dp(12));
+
+            // Top line: name | percentage pill | balance
+            LinearLayout topLine = new LinearLayout(requireContext());
+            topLine.setOrientation(LinearLayout.HORIZONTAL);
+            topLine.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+            TextView tvName = new TextView(requireContext());
+            tvName.setText(c.getCategory());
+            tvName.setTextSize(15);
+            tvName.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
+            tvName.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tvName.setLayoutParams(nameParams);
+
+            GradientDrawable pill = new GradientDrawable();
+            pill.setShape(GradientDrawable.RECTANGLE);
+            pill.setCornerRadius(dp(10));
+            pill.setColor(android.graphics.Color.parseColor("#333336"));
+
+            TextView tvPct = new TextView(requireContext());
+            tvPct.setText(String.format(Locale.US, "%.0f%%", c.getPercentage()));
+            tvPct.setTextSize(12);
+            tvPct.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
+            tvPct.setBackground(pill);
+            tvPct.setPadding(dp(8), dp(3), dp(8), dp(3));
+
+            TextView tvBalance = new TextView(requireContext());
+            tvBalance.setText(String.format(Locale.US, "€%.2f", c.getBalance()));
+            tvBalance.setTextSize(14);
+            tvBalance.setTextColor(android.graphics.Color.parseColor("#4DB6AC"));
+            tvBalance.setTypeface(null, Typeface.BOLD);
+            LinearLayout.LayoutParams balParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            balParams.setMarginStart(dp(12));
+            tvBalance.setLayoutParams(balParams);
+
+            topLine.addView(tvName);
+            topLine.addView(tvPct);
+            topLine.addView(tvBalance);
+
+            // Progress bar representing allocation percentage
+            ProgressBar pb = new ProgressBar(requireContext(), null,
+                    android.R.attr.progressBarStyleHorizontal);
+            pb.setMax(100);
+            pb.setProgress((int) c.getPercentage());
+            pb.setProgressTintList(ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#4DB6AC")));
+            pb.setProgressBackgroundTintList(ColorStateList.valueOf(
+                    android.graphics.Color.parseColor("#3A3A3C")));
+            LinearLayout.LayoutParams pbParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(4));
+            pbParams.topMargin = dp(8);
+            pb.setLayoutParams(pbParams);
+
+            // Last allocation subtitle
+            TextView tvLast = new TextView(requireContext());
+            tvLast.setText(String.format(Locale.US, "Last allocated: €%.2f", c.getLastAllocation()));
+            tvLast.setTextSize(12);
+            tvLast.setTextColor(android.graphics.Color.parseColor("#777777"));
+            LinearLayout.LayoutParams lastParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lastParams.topMargin = dp(4);
+            tvLast.setLayoutParams(lastParams);
+
+            row.addView(topLine);
+            row.addView(pb);
+            row.addView(tvLast);
+
+            // Thin divider between rows (not after the last one)
+            if (i < cats.size() - 1) {
+                View dividerLine = new View(requireContext());
+                dividerLine.setBackgroundColor(android.graphics.Color.parseColor("#3A3A3C"));
+                LinearLayout.LayoutParams divParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1);
+                divParams.topMargin = dp(12);
+                dividerLine.setLayoutParams(divParams);
+                row.addView(dividerLine);
+            }
+
+            categoryContainer.addView(row);
         }
+    }
+
+    private int dp(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private void setupWebView(WebView wv) {
