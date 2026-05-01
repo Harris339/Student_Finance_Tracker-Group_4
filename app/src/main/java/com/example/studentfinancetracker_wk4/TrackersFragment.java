@@ -597,18 +597,19 @@ public class TrackersFragment extends Fragment {
         LinearLayout container = rootView.findViewById(R.id.fixedExpenseContainer);
         View box = requireActivity().getLayoutInflater().inflate(R.layout.expense_item, container, false);
 
-        TextView    tvCategory    = box.findViewById(R.id.tvCategory);
-        TextView    tvTitle       = box.findViewById(R.id.tvTitle);
-        TextView    tvAmount      = box.findViewById(R.id.tvAmount);
-        Button      btnPay        = box.findViewById(R.id.btnPay);
-        TextView    tvTotalPaid   = box.findViewById(R.id.tvTotalPaid);
-        TextView    tvNextPayment = box.findViewById(R.id.tvNextPayment);
-        EditText    etAmount      = box.findViewById(R.id.etAmount);
-        ImageButton btnMenu       = box.findViewById(R.id.btnMenu);
-        TextView    tvFreq        = box.findViewById(R.id.tvFreq);
-        TextView    tvNotes       = box.findViewById(R.id.tvNotes);
-        TextView    tvLastPayment = box.findViewById(R.id.tvLastPayment);
-        Button      btnHistory    = box.findViewById(R.id.btnHistory);
+        TextView    tvCategory         = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle            = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount           = box.findViewById(R.id.tvAmount);
+        Button      btnPay             = box.findViewById(R.id.btnPay);
+        TextView    tvTotalPaid        = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment      = box.findViewById(R.id.tvNextPayment);
+        EditText    etAmount           = box.findViewById(R.id.etAmount);
+        ImageButton btnMenu            = box.findViewById(R.id.btnMenu);
+        TextView    tvFreq             = box.findViewById(R.id.tvFreq);
+        TextView    tvNotes            = box.findViewById(R.id.tvNotes);
+        TextView    tvLastPayment      = box.findViewById(R.id.tvLastPayment);
+        Button      btnHistory         = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
 
         tvCategory.setText(expense.getCategory());
         tvTitle.setText(expense.getTitle());
@@ -618,6 +619,7 @@ public class TrackersFragment extends Fragment {
         setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
         setNotesText(tvNotes, expense.getNotes());
         setLastPaymentText(tvLastPayment, expense.getLastPayment());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
 
         btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
 
@@ -635,13 +637,17 @@ public class TrackersFragment extends Fragment {
                     return;
                 }
             }
+            if (!percDivider.tryDeductExpense(expense.getCategory(), amountToPay)) {
+                Toast.makeText(requireContext(), "Insufficient funds in pool", Toast.LENGTH_SHORT).show();
+                return;
+            }
             expense.addPayment(amountToPay);
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
-            percDivider.deductExpense(expense.getCategory(), amountToPay);
+            updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
             IncomeActivity.saveCategories(percDivider);
             IncomeActivity.saveDivider(percDivider);
             saveTrackers(currentUser);
@@ -783,18 +789,19 @@ public class TrackersFragment extends Fragment {
         LinearLayout container = rootView.findViewById(R.id.subscriptionsContainer);
         View box = requireActivity().getLayoutInflater().inflate(R.layout.subscription_item, container, false);
 
-        TextView    tvCategory     = box.findViewById(R.id.tvCategory);
-        TextView    tvTitle        = box.findViewById(R.id.tvTitle);
-        TextView    tvAmount       = box.findViewById(R.id.tvAmount);
-        TextView    tvFreq         = box.findViewById(R.id.tvFreq);
-        TextView    tvTotalPaid    = box.findViewById(R.id.tvTotalPaid);
-        TextView    tvNextPayment  = box.findViewById(R.id.tvNextPayment);
-        TextView    tvAnnualCost   = box.findViewById(R.id.tvAnnualCost);
-        TextView    tvLastPayment  = box.findViewById(R.id.tvLastPayment);
-        TextView    tvAutoRecorded = box.findViewById(R.id.tvAutoRecorded);
-        TextView    tvNotes        = box.findViewById(R.id.tvNotes);
-        ImageButton btnMenu        = box.findViewById(R.id.btnMenu);
-        Button      btnHistory     = box.findViewById(R.id.btnHistory);
+        TextView    tvCategory          = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle             = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount            = box.findViewById(R.id.tvAmount);
+        TextView    tvFreq              = box.findViewById(R.id.tvFreq);
+        TextView    tvTotalPaid         = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment       = box.findViewById(R.id.tvNextPayment);
+        TextView    tvAnnualCost        = box.findViewById(R.id.tvAnnualCost);
+        TextView    tvLastPayment       = box.findViewById(R.id.tvLastPayment);
+        TextView    tvAutoRecorded      = box.findViewById(R.id.tvAutoRecorded);
+        TextView    tvNotes             = box.findViewById(R.id.tvNotes);
+        ImageButton btnMenu             = box.findViewById(R.id.btnMenu);
+        Button      btnHistory          = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
 
         tvCategory.setText(expense.getCategory());
         tvTitle.setText(expense.getTitle());
@@ -802,6 +809,7 @@ public class TrackersFragment extends Fragment {
         tvFreq.setText(expense.getFrequency());
         tvAnnualCost.setText(String.format("€%.2f / year", expense.getAnnualCost()));
         setNotesText(tvNotes, expense.getNotes());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
 
         int completed = expense.processCompletedCycles();
         if (completed > 0) {
@@ -974,6 +982,22 @@ public class TrackersFragment extends Fragment {
         return adapter;
     }
 
+    private void updateFundsWarning(TextView tv, String category, double required) {
+        for (Category c : percDivider.getAllDividers()) {
+            if (c.getCategory().equals(category)) {
+                if (c.getBalance() < required) {
+                    tv.setText("⚠ Insufficient funds in pool");
+                    tv.setVisibility(View.VISIBLE);
+                } else {
+                    tv.setVisibility(View.GONE);
+                }
+                return;
+            }
+        }
+        tv.setText("⚠ No pool linked to this category");
+        tv.setVisibility(View.VISIBLE);
+    }
+
     private void setDaysText(TextView tv, int days) {
         if (days == 0) {
             tv.setText("Due today");
@@ -1057,6 +1081,10 @@ public class TrackersFragment extends Fragment {
             map.put("notes",      e.getNotes() != null ? e.getNotes() : "");
             map.put("totalPaid",  e.getTotalPaid());
             map.put("lastPayment", e.getLastPayment());
+            map.put("paymentHist", e.getPaymentHist());
+            List<Object> payDates = new ArrayList<>();
+            for (Date d : e.getPaymentDates()) payDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("paymentDates", payDates);
             expenseData.add(map);
         }
 
@@ -1068,6 +1096,10 @@ public class TrackersFragment extends Fragment {
             map.put("targetAmount",  g.getTargetAmount());
             map.put("currentAmount", g.getCurrentAmount());
             map.put("targetDate",    g.getTargetDate());
+            map.put("contributionHist", g.getContributionHist());
+            List<Object> contribDates = new ArrayList<>();
+            for (Date d : g.getContributionDates()) contribDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("contributionDates", contribDates);
             savingsData.add(map);
         }
 

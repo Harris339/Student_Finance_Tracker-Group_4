@@ -229,6 +229,17 @@ public class SmartPercentageDivider {
         }
     }
 
+    public boolean tryDeductExpense(String category, double amount) {
+        for (Category c : divisions) {
+            if (c.getCategory().equals(category)) {
+                if (c.getBalance() < amount) return false;
+                c.setBalance(c.getBalance() - amount);
+                return true;
+            }
+        }
+        return true;
+    }
+
     public void redistributeDeletedBalance(double deletedBalance) {
         if (divisions.isEmpty() || deletedBalance <= 0) return;
 

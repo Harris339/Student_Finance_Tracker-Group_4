@@ -631,13 +631,16 @@ public class TrackersActivity extends AppCompatActivity {
                     return;
                 }
             }
+            if (!percDivider.tryDeductExpense(expense.getCategory(), amountToPay)) {
+                Toast.makeText(this, "Insufficient funds in pool", Toast.LENGTH_SHORT).show();
+                return;
+            }
             expense.addPayment(amountToPay);
             tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
             expense.setLastPayment(new Date());
             setLastPaymentText(tvLastPayment, expense.getLastPayment());
             etAmount.setText("");
             setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
-            percDivider.deductExpense(expense.getCategory(), amountToPay);
             IncomeActivity.saveCategories(percDivider);
             IncomeActivity.saveDivider(percDivider);
             recordTransaction(expense.getCategory(), amountToPay);

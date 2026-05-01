@@ -252,31 +252,57 @@ public class ChartsFragment extends Fragment {
                 if (deletedBalance > 0) {
                     divider.redistributeDeletedBalance(deletedBalance);
                 }
-                for (String removedName : removedCategories) {
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(removedName)
-                            .delete();
-                }
-                List<Category> pools = new ArrayList<>(divider.getAllDividers());
-
-                for (Category c : pools) {
-                    Map<String, Object> update = new HashMap<>();
-                    update.put("percentage", c.getPercentage());
-                    update.put("balance", c.getBalance());
-                    update.put("lastAllocation", c.getLastAllocation());
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(c.getCategory())
-                            .update(update);
+                // Check if any trackers are linked to the removed pools
+                List<String> affectedTrackers = new ArrayList<>();
+                User currentUser = SessionManager.getInstance().getCurrentUser();
+                if (currentUser != null && !removedCategories.isEmpty()) {
+                    for (FixedExpense expense : currentUser.getExpenseList().getAllExpenses()) {
+                        if (removedCategories.contains(expense.getCategory())) {
+                            affectedTrackers.add(expense.getTitle() + " (" + expense.getCategory() + ")");
+                        }
+                    }
                 }
 
-                IncomeActivity.saveCategories(divider);
-                renderCategories();
-                Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+                Runnable applyChanges = () -> {
+                    for (String removedName : removedCategories) {
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(removedName)
+                                .delete();
+                    }
+                    List<Category> pools = new ArrayList<>(divider.getAllDividers());
+                    for (Category c : pools) {
+                        Map<String, Object> update = new HashMap<>();
+                        update.put("percentage", c.getPercentage());
+                        update.put("balance", c.getBalance());
+                        update.put("lastAllocation", c.getLastAllocation());
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(c.getCategory())
+                                .update(update);
+                    }
+                    IncomeActivity.saveCategories(divider);
+                    renderCategories();
+                    Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                };
+
+                if (!affectedTrackers.isEmpty()) {
+                    StringBuilder msg = new StringBuilder(
+                            "The following trackers are linked to a pool being removed and will lose pool deduction:\n\n");
+                    for (String name : affectedTrackers) msg.append("• ").append(name).append("\n");
+                    msg.append("\nProceed anyway?");
+                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Linked trackers affected")
+                            .setMessage(msg.toString())
+                            .setPositiveButton("Remove anyway", (d, w) -> applyChanges.run())
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                } else {
+                    applyChanges.run();
+                }
             });
 
             dialog.show();
