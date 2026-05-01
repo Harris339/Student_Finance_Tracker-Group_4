@@ -204,8 +204,8 @@ public class SmartPercentageDivider {
 
         double otherAllocation = 0;
 
-        if (getTotalAllocations() < user.getBalance()) {
-            otherAllocation= user.getBalance() - getTotalAllocations();
+        if (user != null && getTotalAllocations() < user.getBalance()) {
+            otherAllocation = user.getBalance() - getTotalAllocations();
         }
         for (Category c : divisions) {
             if (c.getCategory().equals("Other")) {

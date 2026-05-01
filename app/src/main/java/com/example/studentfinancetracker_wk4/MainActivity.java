@@ -143,10 +143,13 @@ public class MainActivity extends AppCompatActivity {
                                     for (Map<String, Object> e : expenses) {
                                         String cat   = (String) e.get("category");
                                         String title = (String) e.get("title");
-                                        double amt   = ((Number) e.get("amount")).doubleValue();
+                                        Object amtRaw = e.get("amount");
+                                        if (!(amtRaw instanceof Number)) continue;
+                                        double amt   = ((Number) amtRaw).doubleValue();
                                         String freq  = (String) e.get("frequency");
                                         String notes = (String) e.get("notes");
-                                        double paid  = ((Number) e.get("totalPaid")).doubleValue();
+                                        Object paidRaw = e.get("totalPaid");
+                                        double paid  = paidRaw instanceof Number ? ((Number) paidRaw).doubleValue() : 0.0;
                                         Date lastPay = e.get("lastPayment") instanceof Timestamp
                                                 ? ((Timestamp) e.get("lastPayment")).toDate() : null;
 
@@ -174,8 +177,11 @@ public class MainActivity extends AppCompatActivity {
                                     for (Map<String, Object> s : savings) {
                                         String title    = (String) s.get("title");
                                         String notes    = (String) s.get("notes");
-                                        double target   = ((Number) s.get("targetAmount")).doubleValue();
-                                        double current  = ((Number) s.get("currentAmount")).doubleValue();
+                                        Object targetRaw  = s.get("targetAmount");
+                                        Object currentRaw = s.get("currentAmount");
+                                        if (!(targetRaw instanceof Number)) continue;
+                                        double target   = ((Number) targetRaw).doubleValue();
+                                        double current  = currentRaw instanceof Number ? ((Number) currentRaw).doubleValue() : 0.0;
                                         Date targetDate = s.get("targetDate") instanceof Timestamp
                                                 ? ((Timestamp) s.get("targetDate")).toDate() : null;
 

@@ -67,15 +67,18 @@ public class HomeFragment extends Fragment {
         BalanceViewModel viewModel =
                 new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
 
-        FirebaseFirestore.getInstance()
-                .collection("users")
-                .document(FirebaseAuth.getInstance().getUid())
-                .addSnapshotListener((snapshot, error) -> {
-                    if (snapshot == null || !snapshot.exists()) return;
-                    Double balance = snapshot.getDouble("Balance");
-                    if (balance == null) balance = 0.0;
-                    viewModel.setBalance(balance);
-                });
+        FirebaseUser setupUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (setupUser != null) {
+            FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(setupUser.getUid())
+                    .addSnapshotListener((snapshot, error) -> {
+                        if (snapshot == null || !snapshot.exists()) return;
+                        Double balance = snapshot.getDouble("Balance");
+                        if (balance == null) balance = 0.0;
+                        viewModel.setBalance(balance);
+                    });
+        }
 
         TextView tvUserEmail = view.findViewById(R.id.tvUserEmail);
         TextView tvBalance = view.findViewById(R.id.balance);

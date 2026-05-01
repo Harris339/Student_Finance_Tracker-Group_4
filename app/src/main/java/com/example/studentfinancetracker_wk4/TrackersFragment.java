@@ -539,11 +539,8 @@ public class TrackersFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();
 
-        LinearLayout layout = (LinearLayout) editView;
-        Button btnDelete = new Button(requireContext());
-        btnDelete.setText("Delete Goal");
-        btnDelete.setTextColor(Color.parseColor("#FF6B6B"));
-        layout.addView(btnDelete);
+        Button btnDelete = editView.findViewById(R.id.btnDeleteGoal);
+        btnDelete.setVisibility(View.VISIBLE);
 
         btnDelete.setOnClickListener(e -> {
             View delView = requireActivity().getLayoutInflater().inflate(R.layout.delete_expense_dialog, null);
