@@ -85,7 +85,7 @@ public class createUserActivity extends AppCompatActivity {
                                         }
                                     });
                                 }
-                                Intent intent = new Intent(createUserActivity.this, HomeActivity.class);
+                                Intent intent = new Intent(createUserActivity.this, MainActivity.class);
                                 startActivity(intent);
                             } else {
                                 // If sign in fails, display a message to the user.
