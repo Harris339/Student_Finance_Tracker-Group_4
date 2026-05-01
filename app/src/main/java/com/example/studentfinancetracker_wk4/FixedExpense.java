@@ -193,6 +193,9 @@ public class FixedExpense {
     }
 
     public double getHistAtCurIndex(int change){
+        if (paymentHist.isEmpty()) {
+            return totalPaid;
+        }
         pos += change;
 
         if (pos < 0) {

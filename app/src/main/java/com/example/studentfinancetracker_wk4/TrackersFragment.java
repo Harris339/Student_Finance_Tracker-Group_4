@@ -734,6 +734,8 @@ public class TrackersFragment extends Fragment {
                 dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.show();
 
+            updateUndoRedoTint(btnUndo, btnRedo, expense);
+
             if (btnExit != null) btnExit.setOnClickListener(eve -> dialog.dismiss());
 
             btnUndo.setOnClickListener(event -> {
@@ -922,6 +924,8 @@ public class TrackersFragment extends Fragment {
                 dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             dialog.show();
 
+            updateUndoRedoTint(btnUndo, btnRedo, expense);
+
             if (btnExit != null) btnExit.setOnClickListener(eve -> dialog.dismiss());
 
             btnUndo.setOnClickListener(event -> {
@@ -1075,10 +1079,11 @@ public class TrackersFragment extends Fragment {
     }
 
     private void updateUndoRedoTint(ImageButton btnUndo, ImageButton btnRedo, FixedExpense expense) {
+        List<Double> hist = expense.getPaymentHist();
         btnUndo.setImageTintList(ColorStateList.valueOf(Color.parseColor(
                 expense.getPos() == 0 ? "#B3B1B1" : "#FFFFFF")));
         btnRedo.setImageTintList(ColorStateList.valueOf(Color.parseColor(
-                expense.getPos() == expense.getPaymentHist().size() - 1 ? "#B3B1B1" : "#FFFFFF")));
+                hist.isEmpty() || expense.getPos() == hist.size() - 1 ? "#B3B1B1" : "#FFFFFF")));
     }
 
     private void showHistoryDialog(FixedExpense expense) {
