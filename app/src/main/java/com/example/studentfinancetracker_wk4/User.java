@@ -1,7 +1,5 @@
 package com.example.studentfinancetracker_wk4;
 
-import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.Calendar;
 import java.util.Date;
 
@@ -23,29 +21,25 @@ public class User {
         this.savingsList = new SavingsList();
         this.percDivider = new SmartPercentageDivider();
 
-        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
-
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, -10);
-        Date tendaysago = cal.getTime();
-        expense.setLastPayment(tendaysago);
 
-        expenseList.addExpense(expense);
+        // Large amount — likely exceeds any pool balance, triggers the warning
+        cal.add(Calendar.DAY_OF_MONTH, -5);
+        FixedExpense rent = new FixedExpense("Housing", "Rent", 1200.00, "Monthly", "");
+        rent.setLastPayment(cal.getTime());
+        expenseList.addExpense(rent);
 
-        FixedExpense subscription = new FixedExpense("Subscriptions", "Netflix", 15.99, "Monthly", "");
-        Calendar subCal = Calendar.getInstance();
-        subCal.add(Calendar.DAY_OF_MONTH, -20);
-        subscription.setLastPayment(subCal.getTime());
-        subscription.setTotalPaid(31.98);
-        subscription.addNewHist();
-        expenseList.addExpense(subscription);
+        // Small amount — less likely to trigger the warning
+        cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -12);
+        FixedExpense spotify = new FixedExpense("Subscriptions", "Spotify", 10.99, "Monthly", "");
+        spotify.setLastPayment(cal.getTime());
+        expenseList.addExpense(spotify);
 
-        SavingsGoal laptop = new SavingsGoal("New Laptop", "Saving for a MacBook Pro", 1500.00, null);
-        laptop.addContribution(250.00);
-        laptop.addContribution(100.00);
-        savingsList.addGoal(laptop);
-
-
+        // Savings goal to test that section
+        SavingsGoal goal = new SavingsGoal("Emergency Fund", "3 months expenses", 3000.00, null);
+        goal.addContribution(150.00);
+        savingsList.addGoal(goal);
     }
 
     public User(){

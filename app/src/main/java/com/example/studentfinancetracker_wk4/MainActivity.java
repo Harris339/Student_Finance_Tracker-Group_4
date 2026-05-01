@@ -1,7 +1,9 @@
-package com.example.studentfinancetracker_wk4;
+﻿package com.example.studentfinancetracker_wk4;
 
+import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 
@@ -30,13 +32,24 @@ public class MainActivity extends AppCompatActivity {
     private final TransactionsFragment transactionsFragment = new TransactionsFragment();
     private final TrackersFragment trackersFragment = new TrackersFragment();
     private final ChartsFragment chartsFragment = new ChartsFragment();
+    private BottomNavigationView bottomNav;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Push fragment content below the status bar
+        NotificationHelper.createNotificationChannel(this);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS},
+                        100);
+            }
+        }
+
         View fragmentContainer = findViewById(R.id.fragmentContainer);
         ViewCompat.setOnApplyWindowInsetsListener(fragmentContainer, (v, insets) -> {
             Insets statusBar = insets.getInsets(WindowInsetsCompat.Type.statusBars());
@@ -44,8 +57,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Push bottom nav above the system navigation bar
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+        bottomNav = findViewById(R.id.bottomNav);
         ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (v, insets) -> {
             Insets navBar = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
             v.setPadding(0, 4, 0, navBar.bottom);
@@ -84,92 +96,120 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public void navigateToTrackers() {
+        bottomNav.setSelectedItemId(R.id.nav_trackers);
+    }
+
     private void loadUserData() {
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
+        String uid = firebaseUser.getUid();
 
         FirebaseFirestore.getInstance()
-                .collection("users").document(firebaseUser.getUid())
-                .collection("data").document("categories")
+                .collection("users").document(uid)
+                .collection("percDividers")
                 .get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) return;
-
-                    List<Map<String, Object>> items =
-                            (List<Map<String, Object>>) doc.get("items");
-                    if (items == null) return;
-
+                .addOnSuccessListener(snapshot -> {
                     User user = SessionManager.getInstance().getCurrentUser();
                     if (user == null) return;
 
                     List<Category> categories = new ArrayList<>();
-                    for (Map<String, Object> item : items) {
-                        String name = (String) item.get("name");
-                        double percentage  = ((Number) item.get("percentage")).doubleValue();
-                        double balance     = ((Number) item.get("balance")).doubleValue();
-                        double lastAlloc   = ((Number) item.get("lastAllocation")).doubleValue();
-                        Category c = new Category(name, percentage);
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snapshot) {
+                        String name    = doc.getId();
+                        double pct     = doc.getDouble("percentage")     != null ? doc.getDouble("percentage")     : 0.0;
+                        double balance = doc.getDouble("balance")        != null ? doc.getDouble("balance")        : 0.0;
+                        double alloc   = doc.getDouble("lastAllocation") != null ? doc.getDouble("lastAllocation") : 0.0;
+                        Category c = new Category(name, pct);
                         c.setBalance(balance);
-                        c.setLastAllocation(lastAlloc);
+                        c.setLastAllocation(alloc);
                         categories.add(c);
                     }
-
                     user.getPercDivider().setAllDividers(categories);
                     homeFragment.refreshPools();
                     chartsFragment.refreshData();
-                });
 
-        FirebaseFirestore.getInstance()
-                .collection("users").document(firebaseUser.getUid())
-                .collection("data").document("trackers")
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (!doc.exists()) return;
+                    FirebaseFirestore.getInstance()
+                            .collection("users").document(uid)
+                            .collection("data").document("trackers")
+                            .get()
+                            .addOnSuccessListener(doc -> {
+                                if (!doc.exists()) return;
 
-                    User user = SessionManager.getInstance().getCurrentUser();
-                    if (user == null) return;
+                                user.getExpenseList().getAllExpenses().clear();
+                                user.getSavingsList().getAllGoals().clear();
 
-                    user.getExpenseList().getAllExpenses().clear();
-                    user.getSavingsList().getAllGoals().clear();
+                                List<Map<String, Object>> expenses =
+                                        (List<Map<String, Object>>) doc.get("expenses");
+                                if (expenses != null) {
+                                    for (Map<String, Object> e : expenses) {
+                                        String cat   = (String) e.get("category");
+                                        String title = (String) e.get("title");
+                                        double amt   = ((Number) e.get("amount")).doubleValue();
+                                        String freq  = (String) e.get("frequency");
+                                        String notes = (String) e.get("notes");
+                                        double paid  = ((Number) e.get("totalPaid")).doubleValue();
+                                        Date lastPay = e.get("lastPayment") instanceof Timestamp
+                                                ? ((Timestamp) e.get("lastPayment")).toDate() : null;
 
-                    List<Map<String, Object>> expenses =
-                            (List<Map<String, Object>>) doc.get("expenses");
-                    if (expenses != null) {
-                        for (Map<String, Object> e : expenses) {
-                            String cat   = (String) e.get("category");
-                            String title = (String) e.get("title");
-                            double amt   = ((Number) e.get("amount")).doubleValue();
-                            String freq  = (String) e.get("frequency");
-                            String notes = (String) e.get("notes");
-                            double paid  = ((Number) e.get("totalPaid")).doubleValue();
-                            Date lastPay = e.get("lastPayment") instanceof Timestamp
-                                    ? ((Timestamp) e.get("lastPayment")).toDate() : null;
+                                        FixedExpense expense = new FixedExpense(cat, title, amt, freq, notes);
+                                        expense.setTotalPaid(paid);
+                                        expense.setLastPayment(lastPay);
 
-                            FixedExpense expense = new FixedExpense(cat, title, amt, freq, notes);
-                            expense.setTotalPaid(paid);
-                            expense.setLastPayment(lastPay);
-                            user.getExpenseList().addExpense(expense);
-                        }
-                    }
+                                        List<?> payHist  = (List<?>) e.get("paymentHist");
+                                        List<?> payDates = (List<?>) e.get("paymentDates");
+                                        if (payHist != null && !payHist.isEmpty()) {
+                                            expense.getPaymentHist().clear();
+                                            for (Object v : payHist)
+                                                expense.getPaymentHist().add(((Number) v).doubleValue());
+                                            expense.getPaymentDates().clear();
+                                            if (payDates != null) {
+                                                for (Object d : payDates)
+                                                    expense.getPaymentDates().add(
+                                                            d instanceof Timestamp ? ((Timestamp) d).toDate() : null);
+                                            }
+                                            expense.setPos(expense.getPaymentHist().size() - 1);
+                                        }
+                                        user.getExpenseList().addExpense(expense);
+                                    }
+                                }
 
-                    List<Map<String, Object>> savings =
-                            (List<Map<String, Object>>) doc.get("savings");
-                    if (savings != null) {
-                        for (Map<String, Object> s : savings) {
-                            String title   = (String) s.get("title");
-                            String notes   = (String) s.get("notes");
-                            double target  = ((Number) s.get("targetAmount")).doubleValue();
-                            double current = ((Number) s.get("currentAmount")).doubleValue();
-                            Date targetDate = s.get("targetDate") instanceof Timestamp
-                                    ? ((Timestamp) s.get("targetDate")).toDate() : null;
+                                List<Map<String, Object>> savings =
+                                        (List<Map<String, Object>>) doc.get("savings");
+                                if (savings != null) {
+                                    for (Map<String, Object> s : savings) {
+                                        String title    = (String) s.get("title");
+                                        String notes    = (String) s.get("notes");
+                                        double target   = ((Number) s.get("targetAmount")).doubleValue();
+                                        double current  = ((Number) s.get("currentAmount")).doubleValue();
+                                        Date targetDate = s.get("targetDate") instanceof Timestamp
+                                                ? ((Timestamp) s.get("targetDate")).toDate() : null;
 
-                            SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate);
-                            goal.setCurrentAmount(current);
-                            user.getSavingsList().addGoal(goal);
-                        }
-                    }
+                                        SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate);
+                                        goal.setCurrentAmount(current);
 
-                    trackersFragment.refreshTrackers();
+                                        List<?> contribHist  = (List<?>) s.get("contributionHist");
+                                        List<?> contribDates = (List<?>) s.get("contributionDates");
+                                        if (contribHist != null && !contribHist.isEmpty()) {
+                                            goal.getContributionHist().clear();
+                                            for (Object v : contribHist)
+                                                goal.getContributionHist().add(((Number) v).doubleValue());
+                                            goal.getContributionDates().clear();
+                                            if (contribDates != null) {
+                                                for (Object d : contribDates)
+                                                    goal.getContributionDates().add(
+                                                            d instanceof Timestamp ? ((Timestamp) d).toDate() : null);
+                                            }
+                                            goal.setPos(goal.getContributionHist().size() - 1);
+                                        }
+                                        user.getSavingsList().addGoal(goal);
+                                    }
+                                }
+
+                                trackersFragment.refreshTrackers();
+                                homeFragment.refreshTrackerSections();
+                                NotificationHelper.notifyUpcomingBills(MainActivity.this,
+                                        user.getExpenseList().getAllExpenses());
+                            });
                 });
     }
 }

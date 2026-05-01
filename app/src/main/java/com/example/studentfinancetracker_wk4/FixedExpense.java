@@ -123,6 +123,10 @@ public class FixedExpense {
         return pos;
     }
 
+    public void setPos(int pos) {
+        this.pos = pos;
+    }
+
     public List<Double> getPaymentHist() {
         return paymentHist;
     }

@@ -1,7 +1,6 @@
 package com.example.studentfinancetracker_wk4;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -67,14 +66,14 @@ public class ChartsFragment extends Fragment {
         if (user == null) return;
         divider = user.getPercDivider();
 
-        previousBtn      = view.findViewById(R.id.previousBtn);
-        nextBtn          = view.findViewById(R.id.nextBtn);
-        editBtn          = view.findViewById(R.id.btnEditAll);
-        addBtn           = view.findViewById(R.id.btnAddCategory);
-        tvMonthLabel     = view.findViewById(R.id.tvMonthLabel);
-        barChartView     = view.findViewById(R.id.barChartView);
-        pieChartView     = view.findViewById(R.id.pieChartView);
-        lineChartView    = view.findViewById(R.id.lineChartView);
+        previousBtn       = view.findViewById(R.id.previousBtn);
+        nextBtn           = view.findViewById(R.id.nextBtn);
+        editBtn           = view.findViewById(R.id.btnEditAll);
+        addBtn            = view.findViewById(R.id.btnAddCategory);
+        tvMonthLabel      = view.findViewById(R.id.tvMonthLabel);
+        barChartView      = view.findViewById(R.id.barChartView);
+        pieChartView      = view.findViewById(R.id.pieChartView);
+        lineChartView     = view.findViewById(R.id.lineChartView);
         categoryContainer = view.findViewById(R.id.categoryContainer);
 
         Button backBtn = view.findViewById(R.id.backBtn);
@@ -84,8 +83,8 @@ public class ChartsFragment extends Fragment {
         setupWebView(pieChartView);
         setupWebView(lineChartView);
 
+        // Only call loadDividerFromFirebase() — it calls loadChartData() once data is ready
         loadDividerFromFirebase();
-        loadChartData();
 
         previousBtn.setOnClickListener(v -> {
             currentOffset--;
@@ -141,7 +140,7 @@ public class ChartsFragment extends Fragment {
                 percent.setLayoutParams(percentParams);
                 percent.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                         | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                percent.setText(String.format(java.util.Locale.US, "%.0f", c.getPercentage()));
+                percent.setText(String.format(Locale.US, "%.0f", c.getPercentage()));
                 percent.setTextColor(android.graphics.Color.parseColor("#FFFFFF"));
                 percent.setHintTextColor(android.graphics.Color.parseColor("#888888"));
                 percent.setHint("%");
@@ -159,20 +158,17 @@ public class ChartsFragment extends Fragment {
                 btnRemove.setLayoutParams(removeParams);
                 btnRemove.setOnClickListener(vr -> {
                     int visibleCount = 0;
-
                     for (int j = 0; j < editContainer.getChildCount(); j++) {
                         if (editContainer.getChildAt(j).getVisibility() == View.VISIBLE) {
                             visibleCount++;
                         }
                     }
-
                     if (visibleCount <= 1) {
                         Toast.makeText(requireContext(),
                                 "You must have at least one category",
                                 Toast.LENGTH_SHORT).show();
                         return;
                     }
-
                     row.setVisibility(View.GONE);
                     removedCategories.add(categoryName);
                     editedIndices.remove(index);
@@ -197,8 +193,8 @@ public class ChartsFragment extends Fragment {
                 String uid = firebaseUser.getUid();
 
                 int childCount = editContainer.getChildCount();
-                List<Category> updated = new java.util.ArrayList<>();
-                List<Integer> activeIndices = new java.util.ArrayList<>();
+                List<Category> updated = new ArrayList<>();
+                List<Integer> activeIndices = new ArrayList<>();
 
                 double deletedBalance = 0;
                 for (Category c : existing) {
@@ -230,7 +226,9 @@ public class ChartsFragment extends Fragment {
                     updated.add(updated_c);
                     activeIndices.add(i);
                 }
+
                 divider.setAllDividers(updated);
+
                 Set<Integer> remappedEdited = new HashSet<>();
                 for (int i = 0; i < activeIndices.size(); i++) {
                     if (editedIndices.contains(activeIndices.get(i))) {
@@ -249,34 +247,62 @@ public class ChartsFragment extends Fragment {
                     }
                     divider.rebalanceExceptMultiple(editedPools);
                 }
+
                 if (deletedBalance > 0) {
                     divider.redistributeDeletedBalance(deletedBalance);
                 }
-                for (String removedName : removedCategories) {
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(removedName)
-                            .delete();
-                }
-                List<Category> pools = new ArrayList<>(divider.getAllDividers());
-
-                for (Category c : pools) {
-                    Map<String, Object> update = new HashMap<>();
-                    update.put("percentage", c.getPercentage());
-                    update.put("balance", c.getBalance());
-                    update.put("lastAllocation", c.getLastAllocation());
-                    db.collection("users")
-                            .document(uid)
-                            .collection("percDividers")
-                            .document(c.getCategory())
-                            .update(update);
+                // Check if any trackers are linked to the removed pools
+                List<String> affectedTrackers = new ArrayList<>();
+                User currentUser = SessionManager.getInstance().getCurrentUser();
+                if (currentUser != null && !removedCategories.isEmpty()) {
+                    for (FixedExpense expense : currentUser.getExpenseList().getAllExpenses()) {
+                        if (removedCategories.contains(expense.getCategory())) {
+                            affectedTrackers.add(expense.getTitle() + " (" + expense.getCategory() + ")");
+                        }
+                    }
                 }
 
-                IncomeActivity.saveCategories(divider);
-                renderCategories();
-                Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+                Runnable applyChanges = () -> {
+                    for (String removedName : removedCategories) {
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(removedName)
+                                .delete();
+                    }
+                    List<Category> pools = new ArrayList<>(divider.getAllDividers());
+                    for (Category c : pools) {
+                        Map<String, Object> update = new HashMap<>();
+                        update.put("percentage", c.getPercentage());
+                        update.put("balance", c.getBalance());
+                        update.put("lastAllocation", c.getLastAllocation());
+                        db.collection("users")
+                                .document(uid)
+                                .collection("percDividers")
+                                .document(c.getCategory())
+                                .update(update);
+                    }
+                    IncomeActivity.saveCategories(divider);
+                    renderCategories();
+                    loadChartData();
+                    Toast.makeText(requireContext(), "Updated", Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                };
+
+                if (!affectedTrackers.isEmpty()) {
+                    StringBuilder msg = new StringBuilder(
+                            "The following trackers are linked to a pool being removed and will lose pool deduction:\n\n");
+                    for (String name : affectedTrackers) msg.append("• ").append(name).append("\n");
+                    msg.append("\nProceed anyway?");
+                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Linked trackers affected")
+                            .setMessage(msg.toString())
+                            .setPositiveButton("Remove anyway", (d, w) -> applyChanges.run())
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                } else {
+                    applyChanges.run();
+                }
             });
 
             dialog.show();
@@ -348,6 +374,7 @@ public class ChartsFragment extends Fragment {
 
                 IncomeActivity.saveCategories(divider);
                 renderCategories();
+                loadChartData();
                 Toast.makeText(requireContext(), "Category Added", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
@@ -365,10 +392,10 @@ public class ChartsFragment extends Fragment {
                 .collection("percDividers")
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    List<Category> list = new java.util.ArrayList<>();
+                    List<Category> list = new ArrayList<>();
 
                     for (QueryDocumentSnapshot doc : snapshot) {
-                        String name = doc.getId();
+                        String name    = doc.getId();
                         Double percent = doc.getDouble("percentage");
                         Double balance = doc.getDouble("balance");
                         Double last    = doc.getDouble("lastAllocation");
@@ -385,6 +412,8 @@ public class ChartsFragment extends Fragment {
 
                     divider.setAllDividers(list);
                     renderCategories();
+                    // loadChartData() called here ONLY — after divider is populated
+                    loadChartData();
                 });
     }
 
@@ -405,11 +434,13 @@ public class ChartsFragment extends Fragment {
             User u = SessionManager.getInstance().getCurrentUser();
             if (u != null) divider = u.getPercDivider();
         }
-        if (divider != null && categoryContainer != null) renderCategories();
-        loadChartData();
+        if (divider != null && categoryContainer != null) {
+            loadDividerFromFirebase();
+        }
     }
 
     private void renderCategories() {
+        if (categoryContainer == null) return;
         categoryContainer.removeAllViews();
         for (Category c : divider.getAllDividers()) {
             TextView tv = new TextView(requireContext());
@@ -456,14 +487,22 @@ public class ChartsFragment extends Fragment {
         nextBtn.setAlpha(currentOffset < 0 ? 1f : 0.4f);
 
         int weeks = getWeeksInMonth(monthStart);
-        float[] incomeByWeek   = new float[weeks];
-        float[] expenseByWeek  = new float[weeks];
+        float[] incomeByWeek     = new float[weeks];
+        float[] expenseByWeek    = new float[weeks];
         float[] incomeByWeekLine = new float[weeks];
-        float[] pie = {0f, 0f, 0f, 0f};
+
+        // Pie chart reads directly from SmartPercentage balances
+        List<Category> cats = new ArrayList<>(divider.getAllDividers());
+        float[] pie = new float[cats.size()];
+        for (int i = 0; i < cats.size(); i++) {
+            pie[i] = (float) cats.get(i).getBalance();
+        }
+        loadPieChart(pieChartView, pie, cats);
 
         FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
         if (firebaseUser == null) return;
 
+        // Bar and Line charts read from transactions
         FirebaseFirestore.getInstance()
                 .collection("users").document(firebaseUser.getUid())
                 .collection("transactions")
@@ -473,16 +512,14 @@ public class ChartsFragment extends Fragment {
                 .addOnSuccessListener(snap -> {
                     if (snap.isEmpty()) {
                         loadBarChart(barChartView, "'Wk 1'", "[0]", "[0]");
-                        loadPieChart(pieChartView, new float[]{0, 0, 0, 0});
                         loadLineChart(lineChartView, "'Wk 1'", "[0]");
                         return;
                     }
 
                     for (QueryDocumentSnapshot doc : snap) {
-                        Date date = doc.getDate("createdAt");
-                        Double amt = doc.getDouble("amount");
+                        Date date   = doc.getDate("createdAt");
+                        Double amt  = doc.getDouble("amount");
                         String type = doc.getString("type");
-                        String cat = doc.getString("category");
                         if (date == null || amt == null || type == null) continue;
 
                         int week = (int) ((date.getTime() - monthStart.getTime())
@@ -495,12 +532,6 @@ public class ChartsFragment extends Fragment {
                         }
                         if ("Expense".equals(type)) {
                             expenseByWeek[week] += amt.floatValue();
-                            if (cat != null) {
-                                if (cat.contains("Rent")) pie[0] += amt.floatValue();
-                                else if (cat.contains("Sub")) pie[1] += amt.floatValue();
-                                else if (cat.contains("Util")) pie[2] += amt.floatValue();
-                                else pie[3] += amt.floatValue();
-                            }
                         }
                     }
 
@@ -512,8 +543,8 @@ public class ChartsFragment extends Fragment {
 
                     loadBarChart(barChartView, weekLabels.toString(),
                             toJsArray(incomeByWeek), toJsArray(expenseByWeek));
-                    loadPieChart(pieChartView, pie);
-                    loadLineChart(lineChartView, weekLabels.toString(), toJsArray(incomeByWeekLine));
+                    loadLineChart(lineChartView, weekLabels.toString(),
+                            toJsArray(incomeByWeekLine));
                 })
                 .addOnFailureListener(e -> {
                     if (isAdded() && tvMonthLabel != null)
@@ -543,7 +574,23 @@ public class ChartsFragment extends Fragment {
         wv.loadDataWithBaseURL("https://cdn.jsdelivr.net", html, "text/html", "UTF-8", null);
     }
 
-    private void loadPieChart(WebView wv, float[] pie) {
+    private void loadPieChart(WebView wv, float[] pie, List<Category> cats) {
+        String[] colors = {
+                "#534AB7", "#1D9E75", "#D85A30", "#BA7517",
+                "#E91E63", "#FF9800", "#00BCD4", "#9C27B0"
+        };
+
+        StringBuilder labels   = new StringBuilder();
+        StringBuilder data     = new StringBuilder();
+        StringBuilder colorArr = new StringBuilder();
+
+        for (int i = 0; i < cats.size(); i++) {
+            if (i > 0) { labels.append(","); data.append(","); colorArr.append(","); }
+            labels.append("'").append(cats.get(i).getCategory()).append("'");
+            data.append(String.format(Locale.US, "%.2f", pie[i]));
+            colorArr.append("'").append(colors[i % colors.length]).append("'");
+        }
+
         String html = "<!DOCTYPE html><html><head>"
                 + "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>"
                 + "<style>body{margin:0;background:#1C1C1E;}canvas{width:100%!important;max-height:160px;}</style>"
@@ -551,9 +598,9 @@ public class ChartsFragment extends Fragment {
                 + "<canvas id='c'></canvas><script>"
                 + "new Chart(document.getElementById('c'),{"
                 + "type:'doughnut',"
-                + "data:{labels:['Rent','Subscriptions','Utilities','Other'],"
-                + "datasets:[{data:[" + pie[0] + "," + pie[1] + "," + pie[2] + "," + pie[3] + "],"
-                + "backgroundColor:['#534AB7','#1D9E75','#D85A30','#BA7517'],"
+                + "data:{labels:[" + labels + "],"
+                + "datasets:[{data:[" + data + "],"
+                + "backgroundColor:[" + colorArr + "],"
                 + "borderWidth:0}]},"
                 + "options:{responsive:true,plugins:{legend:"
                 + "{position:'bottom',labels:{color:'#fff',padding:16}}}}});"
