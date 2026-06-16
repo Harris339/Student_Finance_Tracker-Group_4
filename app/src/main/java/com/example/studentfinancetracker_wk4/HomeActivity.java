@@ -17,6 +17,7 @@ public class HomeActivity extends AppCompatActivity {
         Button transactionBtn = findViewById(R.id.transactionBtn);
         Button mainBtn = findViewById(R.id.mainBtn);
         Button expensesBtn = findViewById(R.id.expenseBtn);
+        Button chartBtn = findViewById(R.id.chartBtn);
 
         transactionBtn.setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, TransactionActivity.class);
@@ -29,8 +30,14 @@ public class HomeActivity extends AppCompatActivity {
         });
 
         expensesBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, ExpensesActivity.class);
+            Intent intent = new Intent(HomeActivity.this, TrackersActivity.class);
             startActivity(intent);
         });
+
+        chartBtn.setOnClickListener(v ->{
+            Intent intent = new Intent(HomeActivity.this, ChartActivity.class);
+            startActivity(intent);
+        });
+
     }
 }

@@ -1,22 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:padding="12dp"
     android:background="@drawable/rounded_box"
+    android:clipToOutline="true"
+    android:paddingTop="12dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="12dp"
     android:layout_marginBottom="12dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+    <!-- Orange accent stripe -->
+    <View
+        android:id="@+id/accentStripe"
+        android:layout_width="4dp"
+        android:layout_height="0dp"
+        android:background="#FF9800"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
 
-        <View
+    <!-- Category + menu -->
+    <LinearLayout
+        android:id="@+id/rowTop"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvCategory"
             android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#BBFFFFFF"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"/>
 
         <ImageButton
             android:id="@+id/btnMenu"
@@ -25,119 +50,212 @@
             android:src="@drawable/ic_more_horiz"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Menu"/>
-
     </LinearLayout>
-    <!-- Top row: Title + Amount per period -->
+
+    <!-- Title + amount / freq -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/rowTitle"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/rowTop"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Netflix"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold"/>
 
-            <TextView
+        <TextView
             android:id="@+id/tvAmount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="$15"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"/>
+            android:textColor="#FF9800"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="/"
-            android:textColor="@color/white"
-            android:textSize="16sp"/>
+            android:text=" / "
+            android:textColor="#BBFFFFFF"
+            android:textSize="14sp"/>
 
-            <TextView
-                android:id="@+id/tvFreq"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Monthly"
-                android:textColor="@color/white"
-                android:textSize="16sp"/>
+        <TextView
+            android:id="@+id/tvFreq"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#BBFFFFFF"
+            android:textSize="14sp"/>
     </LinearLayout>
 
-    <!-- Bottom row: Custom Amount + Pay button -->
+    <!-- Annual cost -->
+    <TextView
+        android:id="@+id/tvAnnualCost"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="#BBFFFFFF"
+        android:textSize="11sp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/rowTitle"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Insufficient funds warning -->
+    <TextView
+        android:id="@+id/tvInsufficientFunds"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="⚠ Insufficient funds in pool"
+        android:textColor="#FF6F00"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvAnnualCost"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Divider -->
+    <View
+        android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/tvInsufficientFunds"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Custom amount input + Pay button -->
     <LinearLayout
-        android:layout_width="match_parent"
+        android:id="@+id/rowPay"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginTop="8dp">
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/divider"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <EditText
             android:id="@+id/etAmount"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:hint="Enter custom amount"
-            android:textColorHint="@color/white"
-            android:textColor="@color/white"
-            android:textSize="16dp"
+            android:hint="Custom amount (optional)"
+            android:textColorHint="#55FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
             android:inputType="numberDecimal"/>
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end">
-
-            <Button
-                android:id="@+id/btnPay"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Pay"/>
-        </LinearLayout>
+        <Button
+            android:id="@+id/btnPay"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Pay"
+            android:textSize="13sp"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
-    <!-- Last Payment Date & Total Spent-->
+    <!-- Days until next payment + total paid -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:id="@+id/rowInfo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/rowPay"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Days until next payment: "
-            android:textColor="@color/white" />
+            android:text="Next: "
+            android:textColor="#BBFFFFFF"
+            android:textSize="12sp"/>
 
         <TextView
             android:id="@+id/tvNextPayment"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="--"
-            android:textColor="@color/white"/>
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"/>
 
-        <LinearLayout
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total: "
+            android:textColor="#BBFFFFFF"
+            android:textSize="12sp"/>
+
+        <TextView
+            android:id="@+id/tvTotalPaid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"/>
+    </LinearLayout>
+
+    <!-- Last payment + history button -->
+    <LinearLayout
+        android:id="@+id/rowHistory"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/rowInfo"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvLastPayment"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:textColor="#BBFFFFFF"
+            android:textSize="12sp"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Total paid: "
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginEnd="1dp"/>
-
-            <TextView
-                android:id="@+id/tvTotalPaid"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="$45"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginEnd="16dp"/>
-
+        <Button
+            android:id="@+id/btnHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="History"
+            android:textSize="12sp"/>
     </LinearLayout>
-</LinearLayout>
+
+    <!-- Notes (hidden when empty) -->
+    <TextView
+        android:id="@+id/tvNotes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="#BBFFFFFF"
+        android:textSize="12sp"
+        android:fontStyle="italic"
+        android:visibility="gone"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/rowHistory"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

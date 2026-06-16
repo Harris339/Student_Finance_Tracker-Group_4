@@ -1,32 +1,31 @@
 package com.example.studentfinancetracker_wk4;
 
-import java.util.Calendar;
-import java.util.Date;
-
 public class User {
 
     private String email;
+    private double balance;
     private String password;
     private ExpenseList expenseList;
+    private SavingsList savingsList;
+
+    private SmartPercentageDivider percDivider;
+
     public User(String email, String password){
         this.email = email;
         this.password = password;
+        balance = 0.0;
         this.expenseList = new ExpenseList();
-
-        FixedExpense expense = new FixedExpense("Housing", "My house", 13.30, "Monthly", "");
-
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, -10);
-        Date tendaysago = cal.getTime();
-        expense.setLastPayment(tendaysago);
-
-        expenseList.addExpense(expense);
+        this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
     }
 
     public User(){
         email = "";
+        balance = 0.0;
         password = "";
-
+        this.expenseList = new ExpenseList();
+        this.savingsList = new SavingsList();
+        this.percDivider = new SmartPercentageDivider();
     }
 
     public String getPassword() {
@@ -45,10 +44,16 @@ public class User {
         this.email = email;
     }
 
+    public double getBalance(){return balance;}
+
+    public void setBalance(double balance){this.balance = balance;}
+
     public void addExpense(FixedExpense expense){
         expenseList.addExpense(expense);
-        System.out.println(expenseList.toString());
     }
 
     public ExpenseList getExpenseList(){ return expenseList; }
+    public SavingsList getSavingsList(){ return savingsList; }
+
+    public SmartPercentageDivider getPercDivider(){ return percDivider; }
 }

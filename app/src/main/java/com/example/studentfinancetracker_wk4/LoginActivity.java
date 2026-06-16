@@ -1,12 +1,8 @@
 package com.example.studentfinancetracker_wk4;
 
-import static androidx.core.content.ContextCompat.startActivity;
-
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,9 +17,10 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-public class LoginActivity extends AppCompatActivity{
+public class LoginActivity extends AppCompatActivity {
 
-    private static final String TAG = "loginActivity";
+    private static final String TAG = "LoginActivity";
+
     FirebaseAuth mAuth;
     EditText emailInput, passwordInput;
     Button loginButton, createAccount;
@@ -32,86 +29,71 @@ public class LoginActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
 
         mAuth = FirebaseAuth.getInstance();
 
-        emailInput = findViewById(R.id.emailInput);
+        // Auto-login: Firebase persists sessions across restarts
+        FirebaseUser existing = mAuth.getCurrentUser();
+        if (existing != null) {
+            User user = new User(existing.getEmail(), "");
+            SessionManager.getInstance().setCurrentUser(user);
+            goToMain();
+            return;
+        }
+
+        setContentView(R.layout.activity_login);
+
+        emailInput    = findViewById(R.id.emailInput);
         passwordInput = findViewById(R.id.passwordInput);
-        loginButton = findViewById(R.id.loginButton);
+        loginButton   = findViewById(R.id.loginButton);
         createAccount = findViewById(R.id.createAccount);
-        errorText = findViewById(R.id.errorText);
-
-
-//        loginButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                handleLogin();
-//            }
-//        });
+        errorText     = findViewById(R.id.errorText);
 
         loginButton.setOnClickListener(v -> {
-            String email = emailInput.getText().toString();
+            String email    = emailInput.getText().toString().trim();
             String password = passwordInput.getText().toString();
-            User user = new User(email, password);
-            SessionManager.getInstance().setCurrentUser(user);
+            errorText.setText("");
+
+            if (email.isEmpty() || password.isEmpty()) {
+                errorText.setText("Please enter your email and password");
+                return;
+            }
+
+            // Test credentials shortcut
+            if (email.equals("test") && password.equals("test")) {
+                User user = new User(email, password);
+                SessionManager.getInstance().setCurrentUser(user);
+                goToMain();
+                return;
+            }
+
+            loginButton.setEnabled(false);
             mAuth.signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
                         public void onComplete(@NonNull Task<AuthResult> task) {
+                            loginButton.setEnabled(true);
                             if (task.isSuccessful()) {
-                                // Sign in success, update UI with the signed-in user's information
                                 Log.d(TAG, "signInWithEmail:success");
-                                FirebaseUser user = mAuth.getCurrentUser();
-                                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                                startActivity(intent);
+                                FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                                User user = new User(firebaseUser.getEmail(), "");
+                                SessionManager.getInstance().setCurrentUser(user);
+                                goToMain();
                             } else {
-                                // If sign in fails, display a message to the user.
                                 Log.w(TAG, "signInWithEmail:failure", task.getException());
-                                Toast.makeText(LoginActivity.this, "Authentication failed.",
-                                        Toast.LENGTH_SHORT).show();
+                                errorText.setText("Incorrect email or password");
                             }
                         }
                     });
         });
 
-        createAccount.setOnClickListener(v -> {
-            Intent intent = new Intent(LoginActivity.this, createUserActivity.class);
-            startActivity(intent);
-        });
-
+        createAccount.setOnClickListener(v ->
+                startActivity(new Intent(LoginActivity.this, createUserActivity.class)));
     }
 
-        private void handleLogin() {
-            String email = emailInput.getText().toString();
-            String password = passwordInput.getText().toString();
-
-            if(TextUtils.isEmpty(email)) {
-                errorText.setText("Please enter your email");
-                return;
-            }
-
-            if(TextUtils.isEmpty(password)) {
-                errorText.setText("Please enter your password");
-                return;
-            }
-
-            if (email.equals("test") && password.equals("test")) {
-                errorText.setText("");
-
-                Toast.makeText(this, "Login successful!", Toast.LENGTH_SHORT).show();
-
-                User user = new User(email, password);
-                SessionManager.getInstance().setCurrentUser(user);
-
-                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                startActivity(intent);
-                finish();
-            } else {
-                errorText.setText("Invalid email or password");
-            }
-        }
+    private void goToMain() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
-
-
-
+}

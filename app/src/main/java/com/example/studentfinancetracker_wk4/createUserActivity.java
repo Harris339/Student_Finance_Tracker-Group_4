@@ -49,6 +49,7 @@ public class createUserActivity extends AppCompatActivity {
         createButton.setOnClickListener(v ->{
             String email = emailInput.getText().toString();
             String password = passwordInput.getText().toString();
+            double balance = 0.0;
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                         @Override
@@ -65,14 +66,26 @@ public class createUserActivity extends AppCompatActivity {
                                         if (!documentSnapshot.exists()) {
 
                                             Map<String, Object> userData = new HashMap<>();
-                                            userData.put("email", user.getEmail());
+                                            userData.put("Email", user.getEmail());
+                                            userData.put("Balance", balance);
                                             userData.put("createdAt", new Date());
 
                                             userRef.set(userData);
+
+                                            Map<String, Object> otherCategory = new HashMap<>();
+                                            otherCategory.put("percentage", 100.0);
+                                            otherCategory.put("balance", 0.0);
+                                            otherCategory.put("lastAllocation", 0.0);
+
+                                            db.collection("users")
+                                                    .document(user.getUid())
+                                                    .collection("percDividers")
+                                                    .document("Other")
+                                                    .set(otherCategory);
                                         }
                                     });
                                 }
-                                Intent intent = new Intent(createUserActivity.this, HomeActivity.class);
+                                Intent intent = new Intent(createUserActivity.this, MainActivity.class);
                                 startActivity(intent);
                             } else {
                                 // If sign in fails, display a message to the user.

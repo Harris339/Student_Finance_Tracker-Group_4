@@ -1,0 +1,1235 @@
+package com.example.studentfinancetracker_wk4;
+
+import android.app.DatePickerDialog;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import android.graphics.drawable.GradientDrawable;
+import android.util.TypedValue;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public class TrackersFragment extends Fragment {
+
+    private View rootView;
+    private Button addButton;
+
+    private User currentUser;
+    private ExpenseList expenseList;
+    private SavingsList savingsList;
+    private SmartPercentageDivider percDivider;
+
+    private final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        rootView = inflater.inflate(R.layout.activity_trackers, container, false);
+        return rootView;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        addButton = rootView.findViewById(R.id.addButton);
+        ImageButton backbtn = rootView.findViewById(R.id.btnBack);
+        backbtn.setVisibility(View.GONE);
+        BalanceViewModel viewModel =
+                new ViewModelProvider(requireActivity()).get(BalanceViewModel.class);
+
+        currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+
+        expenseList = currentUser.getExpenseList();
+        savingsList = currentUser.getSavingsList();
+        percDivider = currentUser.getPercDivider();
+
+        for (FixedExpense expense : expenseList.getAllExpenses()) {
+            if ("Subscriptions".equals(expense.getCategory())) addSubscriptionBox(expense);
+            else addExpenseBox(expense);
+        }
+
+        for (SavingsGoal goal : savingsList.getAllGoals()) {
+            addSavingsGoalBox(goal);
+        }
+
+        addButton.setOnClickListener(v -> showAddChoiceDialog());
+        setupFilterBar();
+        updateCostSummary();
+        NotificationHelper.notifyUpcomingBills(requireContext(), currentUser);
+    }
+
+    private TextView activeFilter;
+
+    private void setupFilterBar() {
+        TextView filterAll           = rootView.findViewById(R.id.filterAll);
+        TextView filterExpenses      = rootView.findViewById(R.id.filterExpenses);
+        TextView filterSubscriptions = rootView.findViewById(R.id.filterSubscriptions);
+        TextView filterSavings       = rootView.findViewById(R.id.filterSavings);
+
+        setFilterActive(filterAll, Color.parseColor("#555555"));
+        setFilterInactive(filterExpenses);
+        setFilterInactive(filterSubscriptions);
+        setFilterInactive(filterSavings);
+        activeFilter = filterAll;
+
+        filterAll.setOnClickListener(v -> {
+            setFilterActive(filterAll, Color.parseColor("#555555"));
+            setFilterInactive(filterExpenses);
+            setFilterInactive(filterSubscriptions);
+            setFilterInactive(filterSavings);
+            activeFilter = filterAll;
+            applyFilter("all");
+        });
+
+        filterExpenses.setOnClickListener(v -> {
+            setFilterActive(filterExpenses, Color.parseColor("#FF9800"));
+            setFilterInactive(filterAll);
+            setFilterInactive(filterSubscriptions);
+            setFilterInactive(filterSavings);
+            activeFilter = filterExpenses;
+            applyFilter("expenses");
+        });
+
+        filterSubscriptions.setOnClickListener(v -> {
+            setFilterActive(filterSubscriptions, Color.parseColor("#5C6BC0"));
+            setFilterInactive(filterAll);
+            setFilterInactive(filterExpenses);
+            setFilterInactive(filterSavings);
+            activeFilter = filterSubscriptions;
+            applyFilter("subscriptions");
+        });
+
+        filterSavings.setOnClickListener(v -> {
+            setFilterActive(filterSavings, Color.parseColor("#4DB6AC"));
+            setFilterInactive(filterAll);
+            setFilterInactive(filterExpenses);
+            setFilterInactive(filterSubscriptions);
+            activeFilter = filterSavings;
+            applyFilter("savings");
+        });
+    }
+
+    private void applyFilter(String filter) {
+        LinearLayout sectionExpenses      = rootView.findViewById(R.id.sectionExpenses);
+        LinearLayout sectionSubscriptions = rootView.findViewById(R.id.sectionSubscriptions);
+        LinearLayout sectionSavings       = rootView.findViewById(R.id.sectionSavings);
+
+        boolean showAll = filter.equals("all");
+        sectionExpenses.setVisibility(showAll || filter.equals("expenses") ? View.VISIBLE : View.GONE);
+        sectionSubscriptions.setVisibility(showAll || filter.equals("subscriptions") ? View.VISIBLE : View.GONE);
+        sectionSavings.setVisibility(showAll || filter.equals("savings") ? View.VISIBLE : View.GONE);
+    }
+
+    private void setFilterActive(TextView tv, int color) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(dpToPx(20));
+        bg.setColor(color);
+        tv.setBackground(bg);
+    }
+
+    private void setFilterInactive(TextView tv) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(dpToPx(20));
+        bg.setColor(Color.parseColor("#2C2C2C"));
+        bg.setStroke(dpToPx(1), Color.parseColor("#555555"));
+        tv.setBackground(bg);
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics()));
+    }
+
+    private void showAddChoiceDialog() {
+        View dialogView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_choice, null);
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(dialogView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+
+        dialogView.findViewById(R.id.btnClose).setOnClickListener(v -> dialog.dismiss());
+
+        dialogView.findViewById(R.id.optionExpense).setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddExpenseDialog(false);
+        });
+
+        dialogView.findViewById(R.id.optionSubscription).setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddExpenseDialog(true);
+        });
+
+        dialogView.findViewById(R.id.optionSavings).setOnClickListener(v -> {
+            dialog.dismiss();
+            showAddSavingsDialog();
+        });
+    }
+
+    private void showAddExpenseDialog(boolean isSubscription) {
+        View dialogView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_expense, null);
+
+        Spinner      spCategory     = dialogView.findViewById(R.id.spCategory);
+        Spinner      spFrequency    = dialogView.findViewById(R.id.spFrequency);
+        EditText     etTitle        = dialogView.findViewById(R.id.etTitle);
+        EditText     etDescription  = dialogView.findViewById(R.id.etDescription);
+        EditText     etAmount       = dialogView.findViewById(R.id.etAmount);
+        Button       btnSave        = dialogView.findViewById(R.id.btnSaveExpense);
+        ImageButton  btnExit        = dialogView.findViewById(R.id.btnExit);
+        LinearLayout subscriptionBox = dialogView.findViewById(R.id.subscriptionBox);
+        Button       btnStartDate   = dialogView.findViewById(R.id.btnStartDate);
+
+        Date[] startDate = {new Date()};
+        btnStartDate.setText(sdf.format(startDate[0]));
+
+        btnStartDate.setOnClickListener(vv -> {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(startDate[0]);
+            new DatePickerDialog(requireContext(), (dpView, year, month, day) -> {
+                Calendar sel = Calendar.getInstance();
+                sel.set(year, month, day, 0, 0, 0);
+                sel.set(Calendar.MILLISECOND, 0);
+                startDate[0] = sel.getTime();
+                btnStartDate.setText(sdf.format(startDate[0]));
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        ArrayAdapter<String> catAdapter = buildCategoryAdapter();
+        spCategory.setAdapter(catAdapter);
+        spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+        if (isSubscription) {
+            int subPos = catAdapter.getPosition("Subscriptions");
+            if (subPos >= 0) spCategory.setSelection(subPos);
+            subscriptionBox.setVisibility(View.VISIBLE);
+        }
+
+        spCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                boolean isSub = "Subscriptions".equals(parent.getItemAtPosition(position).toString());
+                subscriptionBox.setVisibility(isSub ? View.VISIBLE : View.GONE);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                subscriptionBox.setVisibility(View.GONE);
+            }
+        });
+
+        ArrayAdapter<CharSequence> freqAdapter = ArrayAdapter.createFromResource(
+                requireContext(), R.array.expense_frequencies, R.layout.spinner_item_white);
+        freqAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+        spFrequency.setAdapter(freqAdapter);
+        spFrequency.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(dialogView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+
+        btnSave.setOnClickListener(view -> {
+            String title       = etTitle.getText().toString().trim();
+            String description = etDescription.getText().toString().trim();
+            String amountStr   = etAmount.getText().toString().trim();
+            String category    = spCategory.getSelectedItem().toString();
+            String frequency   = spFrequency.getSelectedItem().toString();
+
+            if (title.isEmpty() || description.isEmpty() || amountStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Please fill in all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            double amount;
+            try {
+                amount = Double.parseDouble(amountStr);
+                if (amount <= 0) { Toast.makeText(requireContext(), "Amount must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            FixedExpense expense = new FixedExpense(category, title, amount, frequency, description);
+            if ("Subscriptions".equals(category)) expense.setLastPayment(startDate[0]);
+            currentUser.addExpense(expense);
+            saveTrackers(currentUser);
+
+            if ("Subscriptions".equals(category)) addSubscriptionBox(expense);
+            else addExpenseBox(expense);
+
+            dialog.dismiss();
+        });
+
+        btnExit.setOnClickListener(event -> dialog.dismiss());
+    }
+
+    private void showAddSavingsDialog() {
+        View dialogView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_savings, null);
+
+        EditText    etTitle  = dialogView.findViewById(R.id.etTitle);
+        EditText    etTarget = dialogView.findViewById(R.id.etTarget);
+        EditText    etNotes  = dialogView.findViewById(R.id.etNotes);
+        Button      btnDate  = dialogView.findViewById(R.id.btnTargetDate);
+        Button      btnSave  = dialogView.findViewById(R.id.btnSave);
+        ImageButton btnExit  = dialogView.findViewById(R.id.btnExit);
+
+        Date[] targetDate = {null};
+
+        btnDate.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            if (targetDate[0] != null) cal.setTime(targetDate[0]);
+            new DatePickerDialog(requireContext(), (dpView, year, month, day) -> {
+                Calendar sel = Calendar.getInstance();
+                sel.set(year, month, day, 23, 59, 59);
+                targetDate[0] = sel.getTime();
+                btnDate.setText(sdf.format(targetDate[0]));
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(dialogView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+
+        btnSave.setOnClickListener(v -> {
+            String title     = etTitle.getText().toString().trim();
+            String targetStr = etTarget.getText().toString().trim();
+            String notes     = etNotes.getText().toString().trim();
+
+            if (title.isEmpty() || targetStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Please enter a name and target amount", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            double target;
+            try {
+                target = Double.parseDouble(targetStr);
+                if (target <= 0) { Toast.makeText(requireContext(), "Target must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid target amount", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            SavingsGoal goal = new SavingsGoal(title, notes, target, targetDate[0]);
+            savingsList.addGoal(goal);
+            saveTrackers(currentUser);
+            addSavingsGoalBox(goal);
+            dialog.dismiss();
+        });
+
+        btnExit.setOnClickListener(e -> dialog.dismiss());
+    }
+
+    private void addSavingsGoalBox(SavingsGoal goal) {
+        LinearLayout container = rootView.findViewById(R.id.savingsContainer);
+        View box = requireActivity().getLayoutInflater().inflate(R.layout.savings_item, container, false);
+
+        TextView    tvTitle       = box.findViewById(R.id.tvTitle);
+        TextView    tvCompleted   = box.findViewById(R.id.tvCompleted);
+        TextView    tvTarget      = box.findViewById(R.id.tvTarget);
+        ProgressBar progressBar   = box.findViewById(R.id.progressBar);
+        TextView    tvSaved       = box.findViewById(R.id.tvSaved);
+        TextView    tvPercent     = box.findViewById(R.id.tvPercent);
+        TextView    tvDeadline    = box.findViewById(R.id.tvDeadline);
+        TextView    tvNotes       = box.findViewById(R.id.tvNotes);
+        EditText    etContribute  = box.findViewById(R.id.etContribute);
+        Button      btnContribute = box.findViewById(R.id.btnContribute);
+        TextView    tvLastContrib = box.findViewById(R.id.tvLastContrib);
+        Button      btnHistory    = box.findViewById(R.id.btnHistory);
+        ImageButton btnMenu       = box.findViewById(R.id.btnMenu);
+        TextView    tvOnTrack     = box.findViewById(R.id.tvOnTrack);
+
+        refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
+                tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
+
+        btnContribute.setOnClickListener(v -> {
+            String input = etContribute.getText().toString().trim();
+            if (input.isEmpty()) {
+                Toast.makeText(requireContext(), "Enter an amount to add", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            double amount;
+            try {
+                amount = Double.parseDouble(input);
+                if (amount <= 0) { Toast.makeText(requireContext(), "Amount must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            goal.addContribution(amount);
+            saveTrackers(currentUser);
+            etContribute.setText("");
+            refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
+                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
+            if (goal.isCompleted())
+                Toast.makeText(requireContext(), "Goal '" + goal.getTitle() + "' completed!", Toast.LENGTH_SHORT).show();
+        });
+
+        btnHistory.setOnClickListener(v -> showSavingsHistoryDialog(goal));
+
+        btnMenu.setOnClickListener(v -> showSavingsEditDialog(goal, box, container,
+                tvTitle, tvCompleted, tvTarget, progressBar, tvSaved, tvPercent,
+                tvDeadline, tvNotes, tvLastContrib, tvOnTrack));
+
+        container.addView(box);
+        updateEmptyState(container, R.id.emptySavings);
+    }
+
+    private void refreshSavingsCard(SavingsGoal goal,
+            TextView tvTitle, TextView tvCompleted, TextView tvTarget,
+            ProgressBar progressBar, TextView tvSaved, TextView tvPercent,
+            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib, TextView tvOnTrack) {
+
+        tvTitle.setText(goal.getTitle());
+        tvTarget.setText(String.format("€%.2f", goal.getTargetAmount()));
+        progressBar.setProgress(goal.getProgressPercent());
+        tvPercent.setText(goal.getProgressPercent() + "%");
+
+        if (goal.isCompleted()) {
+            tvCompleted.setVisibility(View.VISIBLE);
+            tvSaved.setText(String.format("€%.2f saved · Goal reached!", goal.getCurrentAmount()));
+        } else {
+            tvCompleted.setVisibility(View.GONE);
+            tvSaved.setText(String.format("€%.2f saved · €%.2f to go",
+                    goal.getCurrentAmount(), goal.getRemainingAmount()));
+        }
+
+        int days = goal.getDaysToTarget();
+        if (goal.getTargetDate() != null) {
+            if (days == 0) tvDeadline.setText("Deadline: today");
+            else if (days > 0) tvDeadline.setText("Deadline: " + sdf.format(goal.getTargetDate()) + " (" + days + " days left)");
+            else tvDeadline.setText("Deadline passed: " + sdf.format(goal.getTargetDate()));
+            tvDeadline.setVisibility(View.VISIBLE);
+        } else {
+            tvDeadline.setVisibility(View.GONE);
+        }
+
+        List<Date> dates = goal.getContributionDates();
+        Date lastDate = null;
+        for (int i = dates.size() - 1; i >= 0; i--) {
+            if (dates.get(i) != null) { lastDate = dates.get(i); break; }
+        }
+        tvLastContrib.setText(lastDate != null ? "Last: " + sdf.format(lastDate) : "No contributions yet");
+
+        if (goal.getNotes() != null && !goal.getNotes().isEmpty()) {
+            tvNotes.setText(goal.getNotes());
+            tvNotes.setVisibility(View.VISIBLE);
+        } else {
+            tvNotes.setVisibility(View.GONE);
+        }
+
+        if (tvOnTrack != null) {
+            if (!goal.isCompleted() && goal.getTargetDate() != null) {
+                int daysLeft = goal.getDaysToTarget();
+                double remaining = goal.getRemainingAmount();
+                if (daysLeft <= 0) {
+                    tvOnTrack.setText("Deadline reached");
+                    tvOnTrack.setTextColor(Color.parseColor("#FF6B6B"));
+                    tvOnTrack.setVisibility(View.VISIBLE);
+                } else {
+                    double monthsLeft = daysLeft / 30.44;
+                    double requiredMonthly = remaining / monthsLeft;
+                    List<Date> contribDates = goal.getContributionDates();
+                    Date firstContrib = null;
+                    for (int i = 1; i < contribDates.size(); i++) {
+                        if (contribDates.get(i) != null) { firstContrib = contribDates.get(i); break; }
+                    }
+                    String statusText;
+                    int statusColor;
+                    if (firstContrib == null || goal.getCurrentAmount() <= 0) {
+                        statusText = String.format(Locale.getDefault(), "Needs €%.2f/month to reach goal", requiredMonthly);
+                        statusColor = Color.parseColor("#FF9800");
+                    } else {
+                        long daysSinceStart = Math.max(1,
+                                (new Date().getTime() - firstContrib.getTime()) / (1000L * 60 * 60 * 24));
+                        double actualMonthly = (goal.getCurrentAmount() / (double) daysSinceStart) * 30.44;
+                        if (actualMonthly >= requiredMonthly * 0.95) {
+                            statusText = "On track ✓";
+                            statusColor = Color.parseColor("#4CAF50");
+                        } else {
+                            statusText = String.format(Locale.getDefault(), "Behind — needs €%.2f/month", requiredMonthly);
+                            statusColor = Color.parseColor("#FF9800");
+                        }
+                    }
+                    tvOnTrack.setText(statusText);
+                    tvOnTrack.setTextColor(statusColor);
+                    tvOnTrack.setVisibility(View.VISIBLE);
+                }
+            } else {
+                tvOnTrack.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private void showSavingsEditDialog(SavingsGoal goal, View box, LinearLayout container,
+            TextView tvTitle, TextView tvCompleted, TextView tvTarget,
+            ProgressBar progressBar, TextView tvSaved, TextView tvPercent,
+            TextView tvDeadline, TextView tvNotes, TextView tvLastContrib, TextView tvOnTrack) {
+
+        View editView = requireActivity().getLayoutInflater().inflate(R.layout.dialog_add_savings, null);
+
+        EditText    etTitle   = editView.findViewById(R.id.etTitle);
+        EditText    etTarget  = editView.findViewById(R.id.etTarget);
+        EditText    etNotes   = editView.findViewById(R.id.etNotes);
+        Button      btnDate   = editView.findViewById(R.id.btnTargetDate);
+        Button      btnSave   = editView.findViewById(R.id.btnSave);
+        ImageButton btnExit   = editView.findViewById(R.id.btnExit);
+        TextView    tvHeading = editView.findViewById(R.id.tvHeadingAdd);
+
+        if (tvHeading != null) tvHeading.setText("Edit Savings Goal");
+        btnSave.setText("Save Changes");
+
+        etTitle.setText(goal.getTitle());
+        etTarget.setText(String.format(Locale.getDefault(), "%.2f", goal.getTargetAmount()));
+        etNotes.setText(goal.getNotes());
+
+        Date[] targetDate = {goal.getTargetDate()};
+        btnDate.setText(targetDate[0] != null ? sdf.format(targetDate[0]) : "No deadline");
+
+        btnDate.setOnClickListener(v -> {
+            Calendar cal = Calendar.getInstance();
+            if (targetDate[0] != null) cal.setTime(targetDate[0]);
+            new DatePickerDialog(requireContext(), (dpView, year, month, day) -> {
+                Calendar sel = Calendar.getInstance();
+                sel.set(year, month, day, 23, 59, 59);
+                targetDate[0] = sel.getTime();
+                btnDate.setText(sdf.format(targetDate[0]));
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(editView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+
+        Button btnDelete = editView.findViewById(R.id.btnDeleteGoal);
+        btnDelete.setVisibility(View.VISIBLE);
+
+        btnDelete.setOnClickListener(e -> {
+            View delView = requireActivity().getLayoutInflater().inflate(R.layout.delete_expense_dialog, null);
+            Button btnCancel = delView.findViewById(R.id.btnCancel);
+            Button btnConfirmDelete = delView.findViewById(R.id.btnDelete);
+
+            AlertDialog delDialog = new AlertDialog.Builder(requireContext()).setView(delView).create();
+            if (delDialog.getWindow() != null)
+                delDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            delDialog.show();
+
+            btnCancel.setOnClickListener(ev -> { delDialog.dismiss(); dialog.dismiss(); });
+            btnConfirmDelete.setOnClickListener(ev -> {
+                savingsList.removeGoal(goal);
+                saveTrackers(currentUser);
+                container.removeView(box);
+                updateEmptyState(container, R.id.emptySavings);
+                delDialog.dismiss();
+                dialog.dismiss();
+            });
+        });
+
+        btnSave.setOnClickListener(v -> {
+            String titleStr  = etTitle.getText().toString().trim();
+            String targetStr = etTarget.getText().toString().trim();
+            String notesStr  = etNotes.getText().toString().trim();
+
+            if (titleStr.isEmpty() || targetStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Name and target are required", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            double target;
+            try {
+                target = Double.parseDouble(targetStr);
+                if (target <= 0) { Toast.makeText(requireContext(), "Target must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid target amount", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            goal.setTitle(titleStr);
+            goal.setTargetAmount(target);
+            goal.setNotes(notesStr);
+            goal.setTargetDate(targetDate[0]);
+            saveTrackers(currentUser);
+
+            refreshSavingsCard(goal, tvTitle, tvCompleted, tvTarget, progressBar,
+                    tvSaved, tvPercent, tvDeadline, tvNotes, tvLastContrib, tvOnTrack);
+            dialog.dismiss();
+        });
+
+        btnExit.setOnClickListener(e -> dialog.dismiss());
+    }
+
+    private void showSavingsHistoryDialog(SavingsGoal goal) {
+        View histView = requireActivity().getLayoutInflater().inflate(R.layout.payment_history_dialog, null);
+        LinearLayout histContainer = histView.findViewById(R.id.historyContainer);
+        ImageButton  btnClose      = histView.findViewById(R.id.btnCloseHistory);
+
+        List<Double> hist  = goal.getContributionHist();
+        List<Date>   dates = goal.getContributionDates();
+
+        if (hist.size() <= 1) {
+            TextView empty = new TextView(requireContext());
+            empty.setText("No contributions recorded yet");
+            empty.setTextColor(0xAAFFFFFF);
+            empty.setTextSize(14);
+            histContainer.addView(empty);
+        } else {
+            for (int i = 1; i < hist.size(); i++) {
+                double delta = hist.get(i) - hist.get(i - 1);
+                Date   date  = (i < dates.size()) ? dates.get(i) : null;
+                TextView tv  = new TextView(requireContext());
+                tv.setText((date != null ? sdf.format(date) : "--") + "   +" + String.format("€%.2f", delta));
+                tv.setTextColor(Color.WHITE);
+                tv.setTextSize(14);
+                tv.setPadding(0, 8, 0, 8);
+                histContainer.addView(tv);
+            }
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(histView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+        btnClose.setOnClickListener(vv -> dialog.dismiss());
+    }
+
+    private void addExpenseBox(FixedExpense expense) {
+        LinearLayout container = rootView.findViewById(R.id.fixedExpenseContainer);
+        View box = requireActivity().getLayoutInflater().inflate(R.layout.expense_item, container, false);
+
+        TextView    tvCategory         = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle            = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount           = box.findViewById(R.id.tvAmount);
+        Button      btnPay             = box.findViewById(R.id.btnPay);
+        TextView    tvTotalPaid        = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment      = box.findViewById(R.id.tvNextPayment);
+        EditText    etAmount           = box.findViewById(R.id.etAmount);
+        ImageButton btnMenu            = box.findViewById(R.id.btnMenu);
+        TextView    tvFreq             = box.findViewById(R.id.tvFreq);
+        TextView    tvNotes            = box.findViewById(R.id.tvNotes);
+        TextView    tvLastPayment      = box.findViewById(R.id.tvLastPayment);
+        Button      btnHistory         = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
+        TextView    tvAnnualCost        = box.findViewById(R.id.tvAnnualCost);
+
+        int autoCycles = expense.processCompletedCycles();
+        if (autoCycles > 0)
+            Toast.makeText(requireContext(), autoCycles + " " + expense.getTitle() + " payment(s) auto-recorded", Toast.LENGTH_SHORT).show();
+
+        tvCategory.setText(expense.getCategory());
+        tvTitle.setText(expense.getTitle());
+        tvAmount.setText(String.format("€%.2f", expense.getAmount()));
+        tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+        tvFreq.setText(expense.getFrequency());
+        tvAnnualCost.setText(String.format(Locale.getDefault(), "€%.2f/yr  ·  €%.2f/mo", expense.getAnnualCost(), expense.getAnnualCost() / 12.0));
+        setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+        setNotesText(tvNotes, expense.getNotes());
+        setLastPaymentText(tvLastPayment, expense.getLastPayment());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
+
+        btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
+
+        btnPay.setOnClickListener(ev -> {
+            String input = etAmount.getText().toString().trim();
+            double amountToPay;
+            if (input.isEmpty()) {
+                amountToPay = expense.getAmount();
+            } else {
+                try {
+                    amountToPay = Double.parseDouble(input);
+                    if (amountToPay <= 0) { Toast.makeText(requireContext(), "Amount must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+                } catch (NumberFormatException e) {
+                    Toast.makeText(requireContext(), "Invalid amount entered", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+            if (!percDivider.tryDeductExpense(expense.getCategory(), amountToPay)) {
+                Toast.makeText(requireContext(), "Insufficient funds in pool", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            expense.addPayment(amountToPay);
+            tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+            expense.setLastPayment(new Date());
+            setLastPaymentText(tvLastPayment, expense.getLastPayment());
+            etAmount.setText("");
+            setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+            updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
+            IncomeActivity.saveCategories(percDivider);
+            IncomeActivity.saveDivider(percDivider);
+            saveTrackers(currentUser);
+            recordTransaction(expense.getCategory(), amountToPay);
+        });
+
+        btnMenu.setOnClickListener(ve -> {
+            View editView = requireActivity().getLayoutInflater().inflate(R.layout.edit_expense, null);
+
+            TextView    tvEditTitle       = editView.findViewById(R.id.tvTitle);
+            TextView    tvEditTotalAmount = editView.findViewById(R.id.tvEuroAmount);
+            ImageButton btnExit           = editView.findViewById(R.id.btnExit);
+            ImageButton btnUndo           = editView.findViewById(R.id.btnUndo);
+            ImageButton btnRedo           = editView.findViewById(R.id.btnRedo);
+            EditText    editAmount        = editView.findViewById(R.id.editAmount);
+            Spinner     spCategory        = editView.findViewById(R.id.spCategory);
+            Spinner     spFreq            = editView.findViewById(R.id.spFreq);
+            EditText    etTitle           = editView.findViewById(R.id.etTitle);
+            EditText    etDesc            = editView.findViewById(R.id.etDesc);
+            EditText    etEditAmount      = editView.findViewById(R.id.etAmount);
+            Button      btnSet            = editView.findViewById(R.id.btnSet);
+            Button      btnDeleteDialog   = editView.findViewById(R.id.btnDelete);
+
+            tvEditTitle.setText(expense.getTitle());
+            tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+
+            ArrayAdapter<String> catAdapter = buildCategoryAdapter();
+            spCategory.setAdapter(catAdapter);
+            spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+            spCategory.setSelection(catAdapter.getPosition(expense.getCategory()));
+
+            ArrayAdapter<CharSequence> freqAdapter = ArrayAdapter.createFromResource(
+                    requireContext(), R.array.expense_frequencies, R.layout.spinner_item_white);
+            freqAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            spFreq.setAdapter(freqAdapter);
+            spFreq.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+            spFreq.setSelection(freqAdapter.getPosition(expense.getFrequency()));
+
+            AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(editView).create();
+            if (dialog.getWindow() != null)
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.show();
+
+            updateUndoRedoTint(btnUndo, btnRedo, expense);
+
+            if (btnExit != null) btnExit.setOnClickListener(eve -> dialog.dismiss());
+
+            btnUndo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(-1));
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+                updateUndoRedoTint(btnUndo, btnRedo, expense);
+            });
+
+            btnRedo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(1));
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+                updateUndoRedoTint(btnUndo, btnRedo, expense);
+            });
+
+            btnSet.setOnClickListener(event -> {
+                String titleStr     = etTitle.getText().toString();
+                String descStr      = etDesc.getText().toString();
+                String amountStr    = etEditAmount.getText().toString();
+                String totalAmntStr = editAmount.getText().toString();
+                String originalCategory = expense.getCategory();
+
+                if (!totalAmntStr.isEmpty()) {
+                    try {
+                        double val = Double.parseDouble(totalAmntStr);
+                        if (val < 0) { Toast.makeText(requireContext(), "Total cannot be negative", Toast.LENGTH_SHORT).show(); return; }
+                        expense.setTotalPaid(val);
+                        expense.addNewHist();
+                    } catch (NumberFormatException e) { Toast.makeText(requireContext(), "Invalid total", Toast.LENGTH_SHORT).show(); return; }
+                }
+                if (!amountStr.isEmpty()) {
+                    try {
+                        double val = Double.parseDouble(amountStr);
+                        if (val <= 0) { Toast.makeText(requireContext(), "Amount must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+                        expense.setAmount(val);
+                    } catch (NumberFormatException e) { Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show(); return; }
+                }
+                if (!spCategory.getSelectedItem().toString().equals(expense.getCategory()))
+                    expense.setCategory(spCategory.getSelectedItem().toString());
+                if (!spFreq.getSelectedItem().toString().equals(expense.getFrequency()))
+                    expense.setFrequency(spFreq.getSelectedItem().toString());
+                if (!titleStr.isEmpty()) expense.setTitle(titleStr);
+                if (!descStr.isEmpty()) expense.setNotes(descStr);
+
+                boolean isNowSub = "Subscriptions".equals(expense.getCategory());
+                boolean wasSub   = "Subscriptions".equals(originalCategory);
+                if (wasSub != isNowSub) {
+                    container.removeView(box);
+                    dialog.dismiss();
+                    if (isNowSub) addSubscriptionBox(expense);
+                    else addExpenseBox(expense);
+                    return;
+                }
+
+                tvCategory.setText(expense.getCategory());
+                tvTitle.setText(expense.getTitle());
+                tvAmount.setText(String.format("€%.2f", expense.getAmount()));
+                tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+                tvFreq.setText(expense.getFrequency());
+                tvAnnualCost.setText(String.format(Locale.getDefault(), "€%.2f/yr  ·  €%.2f/mo", expense.getAnnualCost(), expense.getAnnualCost() / 12.0));
+                setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+                setNotesText(tvNotes, expense.getNotes());
+                setLastPaymentText(tvLastPayment, expense.getLastPayment());
+                saveTrackers(currentUser);
+                updateCostSummary();
+                dialog.dismiss();
+            });
+
+            btnDeleteDialog.setOnClickListener(event -> {
+                View delView = requireActivity().getLayoutInflater().inflate(R.layout.delete_expense_dialog, null);
+                Button btnCancel = delView.findViewById(R.id.btnCancel);
+                Button btnDelete = delView.findViewById(R.id.btnDelete);
+
+                AlertDialog delDialog = new AlertDialog.Builder(requireContext()).setView(delView).create();
+                if (delDialog.getWindow() != null)
+                    delDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                delDialog.show();
+
+                btnCancel.setOnClickListener(e -> { delDialog.dismiss(); dialog.dismiss(); });
+                btnDelete.setOnClickListener(e -> {
+                    expenseList.removeExpense(expense);
+                    saveTrackers(currentUser);
+                    container.removeView(box);
+                    updateEmptyState(container, R.id.emptyExpenses);
+                    updateCostSummary();
+                    delDialog.dismiss();
+                    dialog.dismiss();
+                });
+            });
+        });
+
+        container.addView(box);
+        updateEmptyState(container, R.id.emptyExpenses);
+        updateCostSummary();
+    }
+
+    private void addSubscriptionBox(FixedExpense expense) {
+        LinearLayout container = rootView.findViewById(R.id.subscriptionsContainer);
+        View box = requireActivity().getLayoutInflater().inflate(R.layout.subscription_item, container, false);
+
+        TextView    tvCategory          = box.findViewById(R.id.tvCategory);
+        TextView    tvTitle             = box.findViewById(R.id.tvTitle);
+        TextView    tvAmount            = box.findViewById(R.id.tvAmount);
+        TextView    tvFreq              = box.findViewById(R.id.tvFreq);
+        TextView    tvTotalPaid         = box.findViewById(R.id.tvTotalPaid);
+        TextView    tvNextPayment       = box.findViewById(R.id.tvNextPayment);
+        TextView    tvAnnualCost        = box.findViewById(R.id.tvAnnualCost);
+        TextView    tvLastPayment       = box.findViewById(R.id.tvLastPayment);
+        TextView    tvAutoRecorded      = box.findViewById(R.id.tvAutoRecorded);
+        TextView    tvNotes             = box.findViewById(R.id.tvNotes);
+        ImageButton btnMenu             = box.findViewById(R.id.btnMenu);
+        Button      btnHistory          = box.findViewById(R.id.btnHistory);
+        TextView    tvInsufficientFunds = box.findViewById(R.id.tvInsufficientFunds);
+
+        tvCategory.setText(expense.getCategory());
+        tvTitle.setText(expense.getTitle());
+        tvAmount.setText(String.format("€%.2f", expense.getAmount()));
+        tvFreq.setText(expense.getFrequency());
+        tvAnnualCost.setText(String.format("€%.2f / year", expense.getAnnualCost()));
+        setNotesText(tvNotes, expense.getNotes());
+        updateFundsWarning(tvInsufficientFunds, expense.getCategory(), expense.getAmount());
+
+        int completed = expense.processCompletedCycles();
+        if (completed > 0) {
+            tvAutoRecorded.setText(completed + " payment(s) auto-recorded");
+            tvAutoRecorded.setVisibility(View.VISIBLE);
+            Toast.makeText(requireContext(), completed + " " + expense.getTitle() + " payment(s) auto-recorded", Toast.LENGTH_SHORT).show();
+        }
+
+        tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+        setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+        setLastPaymentText(tvLastPayment, expense.getLastPayment());
+
+        btnHistory.setOnClickListener(v -> showHistoryDialog(expense));
+
+        btnMenu.setOnClickListener(ev -> {
+            View editView = requireActivity().getLayoutInflater().inflate(R.layout.edit_expense, null);
+
+            TextView    tvEditTitle       = editView.findViewById(R.id.tvTitle);
+            TextView    tvEditTotalAmount = editView.findViewById(R.id.tvEuroAmount);
+            ImageButton btnExit           = editView.findViewById(R.id.btnExit);
+            ImageButton btnUndo           = editView.findViewById(R.id.btnUndo);
+            ImageButton btnRedo           = editView.findViewById(R.id.btnRedo);
+            EditText    editAmount        = editView.findViewById(R.id.editAmount);
+            Spinner     spCategory        = editView.findViewById(R.id.spCategory);
+            Spinner     spFreq            = editView.findViewById(R.id.spFreq);
+            EditText    etTitle           = editView.findViewById(R.id.etTitle);
+            EditText    etDesc            = editView.findViewById(R.id.etDesc);
+            EditText    etEditAmount      = editView.findViewById(R.id.etAmount);
+            Button      btnSet            = editView.findViewById(R.id.btnSet);
+            Button      btnDeleteDialog   = editView.findViewById(R.id.btnDelete);
+            LinearLayout startDateRow     = editView.findViewById(R.id.startDateRow);
+            Button      btnEditStartDate  = editView.findViewById(R.id.btnEditStartDate);
+
+            tvEditTitle.setText(expense.getTitle());
+            tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+
+            startDateRow.setVisibility(View.VISIBLE);
+            Date[] editStartDate = {expense.getLastPayment() != null ? expense.getLastPayment() : new Date()};
+            btnEditStartDate.setText(sdf.format(editStartDate[0]));
+            btnEditStartDate.setOnClickListener(vv -> {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(editStartDate[0]);
+                new DatePickerDialog(requireContext(), (dpView, year, month, day) -> {
+                    Calendar sel = Calendar.getInstance();
+                    sel.set(year, month, day, 0, 0, 0);
+                    sel.set(Calendar.MILLISECOND, 0);
+                    editStartDate[0] = sel.getTime();
+                    btnEditStartDate.setText(sdf.format(editStartDate[0]));
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+            });
+
+            ArrayAdapter<String> catAdapter = buildCategoryAdapter();
+            spCategory.setAdapter(catAdapter);
+            spCategory.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+            spCategory.setSelection(catAdapter.getPosition(expense.getCategory()));
+
+            ArrayAdapter<CharSequence> freqAdapter = ArrayAdapter.createFromResource(
+                    requireContext(), R.array.expense_frequencies, R.layout.spinner_item_white);
+            freqAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+            spFreq.setAdapter(freqAdapter);
+            spFreq.setPopupBackgroundDrawable(new ColorDrawable(Color.parseColor("#2C2C2C")));
+            spFreq.setSelection(freqAdapter.getPosition(expense.getFrequency()));
+
+            AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(editView).create();
+            if (dialog.getWindow() != null)
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.show();
+
+            updateUndoRedoTint(btnUndo, btnRedo, expense);
+
+            if (btnExit != null) btnExit.setOnClickListener(eve -> dialog.dismiss());
+
+            btnUndo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(-1));
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+                updateUndoRedoTint(btnUndo, btnRedo, expense);
+            });
+
+            btnRedo.setOnClickListener(event -> {
+                expense.setTotalPaid(expense.getHistAtCurIndex(1));
+                tvEditTotalAmount.setText(String.format("%.2f", expense.getTotalPaid()));
+                updateUndoRedoTint(btnUndo, btnRedo, expense);
+            });
+
+            btnSet.setOnClickListener(event -> {
+                String titleStr     = etTitle.getText().toString();
+                String descStr      = etDesc.getText().toString();
+                String amountStr    = etEditAmount.getText().toString();
+                String totalAmntStr = editAmount.getText().toString();
+                String originalCategory = expense.getCategory();
+
+                if (!totalAmntStr.isEmpty()) {
+                    try {
+                        double val = Double.parseDouble(totalAmntStr);
+                        if (val < 0) { Toast.makeText(requireContext(), "Total cannot be negative", Toast.LENGTH_SHORT).show(); return; }
+                        expense.setTotalPaid(val);
+                        expense.addNewHist();
+                    } catch (NumberFormatException e) { Toast.makeText(requireContext(), "Invalid total", Toast.LENGTH_SHORT).show(); return; }
+                }
+                if (!amountStr.isEmpty()) {
+                    try {
+                        double val = Double.parseDouble(amountStr);
+                        if (val <= 0) { Toast.makeText(requireContext(), "Amount must be greater than 0", Toast.LENGTH_SHORT).show(); return; }
+                        expense.setAmount(val);
+                    } catch (NumberFormatException e) { Toast.makeText(requireContext(), "Invalid amount", Toast.LENGTH_SHORT).show(); return; }
+                }
+                if (!spCategory.getSelectedItem().toString().equals(expense.getCategory()))
+                    expense.setCategory(spCategory.getSelectedItem().toString());
+                if (!spFreq.getSelectedItem().toString().equals(expense.getFrequency()))
+                    expense.setFrequency(spFreq.getSelectedItem().toString());
+                if (!titleStr.isEmpty()) expense.setTitle(titleStr);
+                if (!descStr.isEmpty()) expense.setNotes(descStr);
+
+                expense.setLastPayment(editStartDate[0]);
+
+                boolean isNowSub = "Subscriptions".equals(expense.getCategory());
+                boolean wasSub   = "Subscriptions".equals(originalCategory);
+                if (wasSub != isNowSub) {
+                    container.removeView(box);
+                    dialog.dismiss();
+                    if (isNowSub) addSubscriptionBox(expense);
+                    else addExpenseBox(expense);
+                    return;
+                }
+
+                tvCategory.setText(expense.getCategory());
+                tvTitle.setText(expense.getTitle());
+                tvAmount.setText(String.format("€%.2f", expense.getAmount()));
+                tvTotalPaid.setText(String.format("€%.2f", expense.getTotalPaid()));
+                tvFreq.setText(expense.getFrequency());
+                tvAnnualCost.setText(String.format("€%.2f / year", expense.getAnnualCost()));
+                setDaysText(tvNextPayment, expense.getDaysUntilNextPayment());
+                setLastPaymentText(tvLastPayment, expense.getLastPayment());
+                setNotesText(tvNotes, expense.getNotes());
+                saveTrackers(currentUser);
+                updateCostSummary();
+                dialog.dismiss();
+            });
+
+            btnDeleteDialog.setOnClickListener(event -> {
+                View delView = requireActivity().getLayoutInflater().inflate(R.layout.delete_expense_dialog, null);
+                Button btnCancel = delView.findViewById(R.id.btnCancel);
+                Button btnDelete = delView.findViewById(R.id.btnDelete);
+
+                AlertDialog delDialog = new AlertDialog.Builder(requireContext()).setView(delView).create();
+                if (delDialog.getWindow() != null)
+                    delDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+                delDialog.show();
+
+                btnCancel.setOnClickListener(e -> { delDialog.dismiss(); dialog.dismiss(); });
+                btnDelete.setOnClickListener(e -> {
+                    expenseList.removeExpense(expense);
+                    saveTrackers(currentUser);
+                    container.removeView(box);
+                    updateEmptyState(container, R.id.emptySubscriptions);
+                    updateCostSummary();
+                    delDialog.dismiss();
+                    dialog.dismiss();
+                });
+            });
+        });
+
+        container.addView(box);
+        updateEmptyState(container, R.id.emptySubscriptions);
+        updateCostSummary();
+    }
+
+    private ArrayAdapter<String> buildCategoryAdapter() {
+        List<String> items = new ArrayList<>();
+        for (Category c : percDivider.getAllDividers()) {
+            items.add(c.getCategory());
+        }
+        items.add("Subscriptions");
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), R.layout.spinner_item_white, items);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item_white);
+        return adapter;
+    }
+
+    private void updateFundsWarning(TextView tv, String category, double required) {
+        for (Category c : percDivider.getAllDividers()) {
+            if (c.getCategory().equals(category)) {
+                if (c.getBalance() < required) {
+                    tv.setText("⚠ Insufficient funds in pool");
+                    tv.setVisibility(View.VISIBLE);
+                } else {
+                    tv.setVisibility(View.GONE);
+                }
+                return;
+            }
+        }
+        tv.setText("⚠ No pool linked to this category");
+        tv.setVisibility(View.VISIBLE);
+    }
+
+    private void setDaysText(TextView tv, int days) {
+        if (days == 0) {
+            tv.setText("Due today");
+            tv.setTextColor(Color.RED);
+        } else {
+            tv.setText(String.valueOf(days));
+            tv.setTextColor(Color.WHITE);
+        }
+    }
+
+    private void updateEmptyState(LinearLayout container, int emptyViewId) {
+        View empty = rootView.findViewById(emptyViewId);
+        if (empty != null) empty.setVisibility(container.getChildCount() == 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private void setNotesText(TextView tv, String notes) {
+        if (notes != null && !notes.isEmpty()) {
+            tv.setText(notes);
+            tv.setVisibility(View.VISIBLE);
+        } else {
+            tv.setVisibility(View.GONE);
+        }
+    }
+
+    private void setLastPaymentText(TextView tv, Date date) {
+        tv.setText(date != null ? "Last: " + sdf.format(date) : "No payments yet");
+    }
+
+    private void updateUndoRedoTint(ImageButton btnUndo, ImageButton btnRedo, FixedExpense expense) {
+        List<Double> hist = expense.getPaymentHist();
+        btnUndo.setImageTintList(ColorStateList.valueOf(Color.parseColor(
+                expense.getPos() == 0 ? "#B3B1B1" : "#FFFFFF")));
+        btnRedo.setImageTintList(ColorStateList.valueOf(Color.parseColor(
+                hist.isEmpty() || expense.getPos() == hist.size() - 1 ? "#B3B1B1" : "#FFFFFF")));
+    }
+
+    private void showHistoryDialog(FixedExpense expense) {
+        View histView = requireActivity().getLayoutInflater().inflate(R.layout.payment_history_dialog, null);
+        LinearLayout histContainer = histView.findViewById(R.id.historyContainer);
+        ImageButton  btnClose      = histView.findViewById(R.id.btnCloseHistory);
+
+        List<Double> hist  = expense.getPaymentHist();
+        List<Date>   dates = expense.getPaymentDates();
+
+        if (hist.size() <= 1) {
+            TextView empty = new TextView(requireContext());
+            empty.setText("No payments recorded yet");
+            empty.setTextColor(0xAAFFFFFF);
+            empty.setTextSize(14);
+            histContainer.addView(empty);
+        } else {
+            for (int i = 1; i < hist.size(); i++) {
+                double delta = hist.get(i) - hist.get(i - 1);
+                Date   date  = (i < dates.size()) ? dates.get(i) : null;
+                TextView tv  = new TextView(requireContext());
+                tv.setText((date != null ? sdf.format(date) : "--") + "   +" + String.format("€%.2f", delta));
+                tv.setTextColor(Color.WHITE);
+                tv.setTextSize(14);
+                tv.setPadding(0, 8, 0, 8);
+                histContainer.addView(tv);
+            }
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext()).setView(histView).create();
+        if (dialog.getWindow() != null)
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+        btnClose.setOnClickListener(vv -> dialog.dismiss());
+    }
+
+    static void saveTrackers(User user) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) return;
+
+        List<Map<String, Object>> expenseData = new ArrayList<>();
+        for (FixedExpense e : user.getExpenseList().getAllExpenses()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("category",   e.getCategory());
+            map.put("title",      e.getTitle());
+            map.put("amount",     e.getAmount());
+            map.put("frequency",  e.getFrequency());
+            map.put("notes",      e.getNotes() != null ? e.getNotes() : "");
+            map.put("totalPaid",  e.getTotalPaid());
+            map.put("lastPayment", e.getLastPayment());
+            map.put("paymentHist", e.getPaymentHist());
+            List<Object> payDates = new ArrayList<>();
+            for (Date d : e.getPaymentDates()) payDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("paymentDates", payDates);
+            expenseData.add(map);
+        }
+
+        List<Map<String, Object>> savingsData = new ArrayList<>();
+        for (SavingsGoal g : user.getSavingsList().getAllGoals()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("title",         g.getTitle());
+            map.put("notes",         g.getNotes() != null ? g.getNotes() : "");
+            map.put("targetAmount",  g.getTargetAmount());
+            map.put("currentAmount", g.getCurrentAmount());
+            map.put("targetDate",    g.getTargetDate());
+            map.put("contributionHist", g.getContributionHist());
+            List<Object> contribDates = new ArrayList<>();
+            for (Date d : g.getContributionDates()) contribDates.add(d != null ? new com.google.firebase.Timestamp(d) : null);
+            map.put("contributionDates", contribDates);
+            savingsData.add(map);
+        }
+
+        Map<String, Object> doc = new HashMap<>();
+        doc.put("expenses", expenseData);
+        doc.put("savings",  savingsData);
+
+        FirebaseFirestore.getInstance()
+                .collection("users").document(firebaseUser.getUid())
+                .collection("data").document("trackers")
+                .set(doc);
+    }
+
+    void refreshTrackers() {
+        if (rootView == null || expenseList == null || savingsList == null) return;
+
+        LinearLayout expContainer = rootView.findViewById(R.id.fixedExpenseContainer);
+        LinearLayout subContainer = rootView.findViewById(R.id.subscriptionsContainer);
+        LinearLayout savContainer = rootView.findViewById(R.id.savingsContainer);
+
+        expContainer.removeAllViews();
+        subContainer.removeAllViews();
+        savContainer.removeAllViews();
+
+        for (FixedExpense expense : expenseList.getAllExpenses()) {
+            if ("Subscriptions".equals(expense.getCategory())) addSubscriptionBox(expense);
+            else addExpenseBox(expense);
+        }
+        for (SavingsGoal goal : savingsList.getAllGoals()) {
+            addSavingsGoalBox(goal);
+        }
+
+        updateEmptyState(expContainer, R.id.emptyExpenses);
+        updateEmptyState(subContainer, R.id.emptySubscriptions);
+        updateEmptyState(savContainer, R.id.emptySavings);
+        updateCostSummary();
+    }
+
+    private void updateCostSummary() {
+        if (rootView == null || expenseList == null) return;
+        TextView tvMonthly = rootView.findViewById(R.id.tvTotalMonthly);
+        TextView tvAnnual  = rootView.findViewById(R.id.tvTotalAnnual);
+        if (tvMonthly == null || tvAnnual == null) return;
+        double annual = 0;
+        for (FixedExpense e : expenseList.getAllExpenses()) annual += e.getAnnualCost();
+        tvMonthly.setText(String.format(Locale.getDefault(), "€%.2f", annual / 12.0));
+        tvAnnual.setText(String.format(Locale.getDefault(), "€%.2f", annual));
+    }
+
+    private void recordTransaction(String category, double amount) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        if (user == null) {
+            Toast.makeText(requireContext(), "User not logged in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Map<String, Object> tx = new HashMap<>();
+        tx.put("amount", amount);
+        tx.put("type", "Expense");
+        tx.put("category", category);
+        tx.put("createdAt", new Date());
+
+        db.collection("users")
+                .document(user.getUid())
+                .collection("transactions")
+                .add(tx)
+                .addOnSuccessListener(doc ->
+                        Toast.makeText(requireContext(), "Saved", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+        db.collection("users")
+                .document(user.getUid())
+                .update("Balance", com.google.firebase.firestore.FieldValue.increment(-amount));
+    }
+}

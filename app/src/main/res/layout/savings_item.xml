@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_box"
+    android:clipToOutline="true"
+    android:paddingTop="12dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="12dp"
+    android:layout_marginBottom="12dp">
+
+    <!-- Teal accent stripe -->
+    <View
+        android:id="@+id/accentStripe"
+        android:layout_width="4dp"
+        android:layout_height="0dp"
+        android:background="#4DB6AC"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- Badge + menu -->
+    <LinearLayout
+        android:id="@+id/rowBadge"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvBadge"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SAVINGS GOAL"
+            android:textColor="#BBFFFFFF"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.12"/>
+
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="wrap_content"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_more_horiz"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Menu"/>
+    </LinearLayout>
+
+    <!-- Title + completed badge + target -->
+    <LinearLayout
+        android:id="@+id/rowTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/rowBadge"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tvCompleted"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DONE ✓"
+            android:textColor="#4DB6AC"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="6dp"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/tvTarget"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#4DB6AC"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/rowTitle"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Progress bar -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        android:progressTint="#4DB6AC"
+        android:progressBackgroundTint="#333333"
+        android:max="100"
+        app:layout_constraintTop_toBottomOf="@id/divider"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Saved / remaining + percent -->
+    <LinearLayout
+        android:id="@+id/rowSaved"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="6dp"
+        app:layout_constraintTop_toBottomOf="@id/progressBar"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvSaved"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#BBFFFFFF"
+            android:textSize="12sp"/>
+
+        <TextView
+            android:id="@+id/tvPercent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#4DB6AC"
+            android:textSize="12sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- Deadline (hidden when no deadline) -->
+    <TextView
+        android:id="@+id/tvDeadline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="#BBFFFFFF"
+        android:textSize="12sp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/rowSaved"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- On-track indicator -->
+    <TextView
+        android:id="@+id/tvOnTrack"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvDeadline"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Notes (hidden when empty) -->
+    <TextView
+        android:id="@+id/tvNotes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textColor="#BBFFFFFF"
+        android:textSize="12sp"
+        android:fontStyle="italic"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvOnTrack"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Contribute row -->
+    <LinearLayout
+        android:id="@+id/rowContribute"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/tvNotes"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/etContribute"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Amount to add"
+            android:textColorHint="#55FFFFFF"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:inputType="numberDecimal"/>
+
+        <Button
+            android:id="@+id/btnContribute"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Add"
+            android:textSize="13sp"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <!-- Last contribution + history button -->
+    <LinearLayout
+        android:id="@+id/rowBottom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="2dp"
+        app:layout_constraintTop_toBottomOf="@id/rowContribute"
+        app:layout_constraintStart_toEndOf="@id/accentStripe"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tvLastContrib"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#BBFFFFFF"
+            android:textSize="12sp"/>
+
+        <Button
+            android:id="@+id/btnHistory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="History"
+            android:textSize="12sp"/>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
